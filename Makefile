@@ -20,6 +20,8 @@ ifeq ($(git_branch), HEAD)
 		git_branch := $(git_tag)
 	endif
 	BuildVersion := $(git_branch)_$(git_rev)
+else
+	BuildBranch := $(git_branch)
 endif
 
 ifeq ($(git_branch), dev)
@@ -40,6 +42,7 @@ GOLDFLAGS += -X 'headscale-panel/version.BuildGoVersion=$(BuildGoVersion)'
 GOLDFLAGS += -X 'headscale-panel/version.Branch=$(BuildBranch)'
 GOLDFLAGS += -X 'headscale-panel/version.OS=$(BuildOS)'
 GOLDFLAGS += -X 'headscale-panel/version.Arch=$(BuildArch)'
+STATIC = -extldflags '-static'
 
 .PHONY: mod build
 
@@ -49,7 +52,7 @@ mod:
 
 
 build:
-	go build -o "bin/$(app_name)" -ldflags "$(GOLDFLAGS)" -gcflags "-trimpath -m"
+	go build -o "bin/$(app_name)" -ldflags "$(GOLDFLAGS) $(STATIC)" -gcflags "-trimpath -m"
 
 build-all: build-linux-x86 build-linux-x64 build-linux-arm64 build-mac-intel build-mac-silicon
 
@@ -62,9 +65,3 @@ build-linux-x64:
 
 build-linux-arm64:
 	GOOS=linux GOARCH=arm64 go build -o "bin/$(app_name)_linux_arm64" -ldflags "$(GOLDFLAGS)" -gcflags "-trimpath -m"
-
-build-mac-intel:
-	GOOS=darwin GOARCH=amd64 go build -o "bin/$(app_name)_darwin_x64" -ldflags "$(GOLDFLAGS)" -gcflags "-trimpath -m"
-
-build-mac-silicon:
-	GOOS=darwin GOARCH=amd64 go build -o "bin/$(app_name)_darwin_arm64" -ldflags "$(GOLDFLAGS)" -gcflags "-trimpath -m"
