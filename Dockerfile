@@ -4,7 +4,7 @@ LABEL authors="QianheYu"
 WORKDIR /src
 COPY . .
 
-RUN apt-get update && apt-get install -y upx
+RUN apt-get update && apt-get install -y upx git
 
 RUN make build && upx -9 bin/headscale-panel
 

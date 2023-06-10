@@ -4,7 +4,7 @@ LABEL authors="QianheYu"
 WORKDIR /src
 COPY . .
 
-RUN apk update && apk add --no-cache make upx
+RUN apk update && apk add --no-cache make upx git
 
 RUN make build && upx -9 bin/headscale-panel
 

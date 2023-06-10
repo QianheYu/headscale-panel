@@ -22,9 +22,9 @@ ifeq ($(git_branch), HEAD)
 	BuildVersion := $(git_branch)_$(git_rev)
 endif
 
-ifeq ($(git_branch), develop)
+ifeq ($(git_branch), dev)
 #	BuildVersion := develop_$(git_rev)
-	BuildBranch := develop
+	BuildBranch := dev
 endif
 
 ifeq ($(git_branch), master|main)
