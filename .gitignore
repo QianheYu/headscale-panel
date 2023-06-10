@@ -1,0 +1,27 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+.idea
+.vscode
+logs
+bin
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+*.o
+*.a
+
+# OS General
+Thumbs.db
+.DS_Store
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+deploy/mysql/data
+deploy/postgres/data

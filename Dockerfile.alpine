@@ -1,0 +1,22 @@
+FROM docker.io/golang:alpine AS build
+LABEL authors="QianheYu"
+
+WORKDIR /src
+COPY . .
+
+RUN apk update && apk add --no-cache make upx
+
+RUN make build && upx -9 bin/headscale-panel
+
+FROM docker.io/alpine:latest
+LABEL authors="QianheYu"
+LABEL all-in-one=true
+
+RUN apk update && apk add --no-cache ca-certificates && update-ca-certificates
+
+RUN mkdir -p /etc/headscale-panel && mkdir -p /etc/headscale && mkdir -p /var/lib/headscale && mkdir -p /var/run/headscale
+
+COPY --from=build /src/bin/headscale-panel /bin/headscale-panel
+ENV TZ UTC
+
+CMD ["headscale-panel"]

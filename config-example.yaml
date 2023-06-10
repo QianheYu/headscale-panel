@@ -1,0 +1,99 @@
+# delelopment
+system:
+  # setting mode (debug/release/test,正式版改为release)
+  mode: debug
+  # url prefix
+  url-path-prefix: api
+  # listen address
+  listen_addr: 0.0.0.0:8088
+#  # Whether to initialize data (used when no initial data is available, changed to false for a released version)
+  init-data: false
+  # Path to the rsa public key file (relative path to config.yml, can also be absolute path)
+  rsa-public-key: headscale-panel-pub.pem
+  # path to rsa private key file (relative path to config.yml, can also be absolute path)
+  rsa-private-key: headscale-panel-priv.pem
+
+logs:
+  # log level (-1:Debug, 0:Info, 1:Warn, 2:Error, 3:DPanic, 4:Panic, 5:Fatal, -1<=level<=5, 参照zap.level源码)
+  level: -1
+  # log path
+  path: logs
+  # log file max size, M
+  max-size: 50
+  # Number of backups
+  max-backups: 100
+  # Storage time, days
+  max-age: 30
+  # Compressed or not
+  compress: false
+
+# database config
+database:
+  # must be set to postgres
+  driver: postgres
+  dsn: postgres://root:root@localhost:5432/postgres?sslmode=disable
+  log-mode: true
+
+# casbin config
+casbin:
+  # Model configuration file, config.yaml relative path
+  model-path: 'rbac_model.conf'
+
+# jwt config
+jwt:
+  # jwt mark
+  realm: test jwt
+  # Server side key
+  key: secret key
+  # token expiry time, hours
+  timeout: 12
+  # Refresh token maximum expiry time, hours
+  max-refresh: 12
+
+# Token bucket flow limiting configuration
+rate-limit:
+  # The time interval required to fill a token, in milliseconds
+  fill-interval: 50
+  # Barrel capacity
+  capacity: 200
+
+# Headscale control related config
+headscale:
+#  Support for two modes: standalone or multi
+#  standalone is the singleton mode used when headscale and headscale-panel are deployed in the same runtime environment.
+#  The operation of headscale will be managed by headscale.
+#  multi is the distributed mode used when headscale and headscale-panel are deployed in different runtime environments,
+#  connected via gRPC.
+  mode: standalone
+
+  # Headscale executable, configuration file, and ACL file settings
+  app: /usr/local/bin/headscale
+  config: /etc/headscale/config.yaml
+  acl: /etc/headscale/acl.yaml
+#  Set when headscale uses TLS encryption
+#  cert: /etc/headscale/server.crt
+#  key: /etc/headscale/server.key
+#  Set when headscale uses TLS encryption with a self-signed certificate
+#  ca: /etc/headscale/ca.crt
+#  server_name: localhost:50443
+#  Set the headscale controller, required for singleton mode
+  controller:
+#    Set whether to use the built-in runtime manager or another headscale runtime manager
+    inside: true
+#    Required when using an external runtime manager
+#    command:
+#      start: systemctl start headscale
+#      restart: systemctl restart headscale
+#      stop: systemctl stop headscale
+#  Required for headscale OIDC integration
+  oidc:
+#    The backend issuer needs to match the configuration in headscale.
+#    For singleton mode, it is set as localhost, and for distributed mode,
+#    modify it to the address and port of your backend.
+    issuer: "http://localhost:8088"
+#    Please modify it to the address of the frontend device connection page. When using headscale-panel-ui,
+#    it is "http(s)://your-domain(:port)/#/connect".
+    authorize: "http://localhost:8080/#/connect"
+#    Should match the configuration in headscale
+    client_id: "your-oidc-client-id"
+    client_secret: "your-oidc-client-secret"
