@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"gorm.io/gorm"
 	"headscale-panel/common"
 	"headscale-panel/model"
 	"headscale-panel/vo"
@@ -66,7 +67,7 @@ func (o OperationLogRepository) BatchDeleteOperationLogByIds(ids []uint) error {
 }
 
 func (o OperationLogRepository) DeleteAllOperationLog() error {
-	return common.DB.Unscoped().Delete(&model.OperationLog{}).Error
+	return common.DB.Session(&gorm.Session{AllowGlobalUpdate: true}).Unscoped().Delete(&model.OperationLog{}).Error
 }
 
 // var Logs []model.OperationLog // Global variables need to be locked by multiple threads, so each thread maintains its own
