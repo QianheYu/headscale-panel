@@ -4,9 +4,9 @@ LABEL authors="QianheYu"
 WORKDIR /src
 COPY . .
 
-RUN apk update && apk add --no-cache make upx git
+RUN apk update && apk add --no-cache make git
 
-RUN make build && upx -9 bin/headscale-panel
+RUN make build
 
 FROM docker.io/alpine:latest
 LABEL authors="QianheYu"

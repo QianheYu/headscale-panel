@@ -4,9 +4,9 @@ LABEL authors="QianheYu"
 WORKDIR /src
 COPY . .
 
-RUN apt-get update && apt-get install -y upx git
+RUN apt-get update && apt-get install -y git
 
-RUN make build && upx -9 bin/headscale-panel
+RUN make build
 
 FROM docker.io/debian:bullseye-slim
 LABEL authors="QianheYu"
