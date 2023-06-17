@@ -9,41 +9,45 @@ import (
 	"time"
 )
 
-// 操作日志channel
+// Operation log channel
 var OperationLogChan = make(chan *model.OperationLog, 30)
 
 func OperationLogMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 开始时间
+		// Start time
 		startTime := time.Now()
 
-		// 处理请求
+		// Processing requests
 		c.Next()
 
-		// 结束时间
+		// End time
 		endTime := time.Now()
 
-		// 执行耗时
+		// Execution time consuming
 		timeCost := endTime.Sub(startTime).Milliseconds()
 
-		// 获取当前登录用户
+		// Get the currently logged in user
 		var username string
 		ctxUser, exists := c.Get("user")
 		if !exists {
-			username = "未登录"
+			username = "Not logged in"
 		}
 		user, ok := ctxUser.(model.User)
 		if !ok {
-			username = "未登录"
+			username = "Not logged in"
 		}
 		username = user.Name
 
-		// 获取访问路径
+		// Get access path
 		path := strings.TrimPrefix(c.FullPath(), "/"+config.Conf.System.UrlPathPrefix)
-		// 请求方式
-		method := c.Request.Method
 
-		// 获取接口描述
+		// Request method
+		method := c.Request.Method
+		if path == "/system/status" || (path == "/console/machine" && method == "GET") {
+			return
+		}
+
+		// Get a description of the interface
 		apiRepository := repository.NewApiRepository()
 		apiDesc, _ := apiRepository.GetApiDescByPath(path, method)
 
@@ -60,8 +64,8 @@ func OperationLogMiddleware() gin.HandlerFunc {
 			//UserAgent:  c.Request.UserAgent(),
 		}
 
-		// 最好是将日志发送到rabbitmq或者kafka中
-		// 这里是发送到channel中，开启3个goroutine处理
+		// It is best to send the logs to rabbitmq or kafka
+		// Here it is sent to the channel and 3 goroutines are opened for processing
 		OperationLogChan <- &operationLog
 	}
 }

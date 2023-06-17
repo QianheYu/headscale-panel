@@ -1,13 +1,14 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"headscale-panel/common"
 	"headscale-panel/log"
 	"headscale-panel/repository"
 	"headscale-panel/response"
 	"headscale-panel/vo"
+
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type IOperationLogController interface {
@@ -64,12 +65,22 @@ func (oc OperationLogController) BatchDeleteOperationLogByIds(c *gin.Context) {
 		return
 	}
 
-	// Delete logs
-	err := oc.operationLogRepository.BatchDeleteOperationLogByIds(req.OperationLogIds)
-	if err != nil {
-		response.Fail(c, nil, "Failed to delete logs")
-		log.Log.Errorf("delete logs error: %v", err)
-		return
+	if len(req.OperationLogIds) == 0 {
+		// Delete all
+		err := oc.operationLogRepository.DeleteAllOperationLog()
+		if err != nil {
+			response.Fail(c, nil, "Failed to delete logs")
+			log.Log.Errorf("delete logs error: %v", err)
+			return
+		}
+	} else {
+		// Delete logs
+		err := oc.operationLogRepository.BatchDeleteOperationLogByIds(req.OperationLogIds)
+		if err != nil {
+			response.Fail(c, nil, "Failed to delete logs")
+			log.Log.Errorf("delete logs error: %v", err)
+			return
+		}
 	}
 
 	response.Success(c, nil, "Successfully delete logs")

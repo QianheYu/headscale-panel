@@ -11,6 +11,7 @@ import (
 type IOperationLogRepository interface {
 	GetOperationLogs(req *vo.OperationLogListRequest) ([]model.OperationLog, int64, error)
 	BatchDeleteOperationLogByIds(ids []uint) error
+	DeleteAllOperationLog() error
 	SaveOperationLogChannel(olc <-chan *model.OperationLog) // SaveOperationLogChannel Save operation log channel to record logs to the database
 }
 
@@ -62,6 +63,10 @@ func (o OperationLogRepository) GetOperationLogs(req *vo.OperationLogListRequest
 func (o OperationLogRepository) BatchDeleteOperationLogByIds(ids []uint) error {
 	err := common.DB.Where("id IN (?)", ids).Unscoped().Delete(&model.OperationLog{}).Error
 	return err
+}
+
+func (o OperationLogRepository) DeleteAllOperationLog() error {
+	return common.DB.Unscoped().Delete(&model.OperationLog{}).Error
 }
 
 // var Logs []model.OperationLog // Global variables need to be locked by multiple threads, so each thread maintains its own
