@@ -59,17 +59,15 @@ func LoadPrivateKey(fileName, password string) (*rsa.PrivateKey, error) {
 
 	var privKey any
 	switch block.Type {
-	case "ENCRYPTED PRIVATE KEY":
-		if x509.IsEncryptedPEMBlock(block) {
-			// Warn: Since we won't be using blocks here,
-			// we've chosen to reuse block.Bytes,
-			// so be sure to change this if you use blocks in subsequent extensions.
-			block.Bytes, err = x509.DecryptPEMBlock(block, []byte(password))
-			if err != nil {
-				return nil, fmt.Errorf("DecryptPEMBlock error: %v", err)
-			}
-		}
-		fallthrough
+	// case "ENCRYPTED PRIVATE KEY":
+	// 	// Warn: Since we won't be using blocks here,
+	// 	// we've chosen to reuse block.Bytes,
+	// 	// so be sure to change this if you use blocks in subsequent extensions.
+	// 	block.Bytes, err = x509.DecryptPEMBlock(block, []byte(password))
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("DecryptPEMBlock error: %v", err)
+	// 	}
+	// 	fallthrough
 	case "PRIVATE KEY":
 		privKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
 	case "RSA PRIVATE KEY":
