@@ -55,11 +55,15 @@ func InitConfig() {
 	if err := viper.BindEnv("config"); err != nil {
 		fmt.Printf(err.Error())
 	}
+	if err := viper.BindEnv("KEY_DECRYPTION_PWD"); err != nil {
+		fmt.Printf(err.Error())
+	}
 
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
 		fmt.Printf(err.Error())
 	}
 	configFile := viper.GetString("config")
+	KeyDecryptionPwd := viper.GetString("KEY_DECRYPTION_PWD")
 
 	if len(configFile) <= 0 {
 		panic(fmt.Errorf("config path is empty"))
@@ -92,7 +96,7 @@ func InitConfig() {
 		if err != nil {
 			panic(fmt.Errorf("init config file failed: load public key err:%s \n", err))
 		}
-		Conf.System.PrivateKey, err = util.LoadPrivateKey(Conf.System.RSAPrivateKey)
+		Conf.System.PrivateKey, err = util.LoadPrivateKey(Conf.System.RSAPrivateKey, Conf.System.KeyDecryptionPwd)
 		if err != nil {
 			panic(fmt.Errorf("init config file failed: load private key err:%s \n", err))
 		}
@@ -109,9 +113,13 @@ func InitConfig() {
 	if err != nil {
 		panic(fmt.Errorf("init config file failed: load public key err:%s \n", err))
 	}
-	Conf.System.PrivateKey, err = util.LoadPrivateKey(Conf.System.RSAPrivateKey)
+	Conf.System.PrivateKey, err = util.LoadPrivateKey(Conf.System.RSAPrivateKey, Conf.System.KeyDecryptionPwd)
 	if err != nil {
 		panic(fmt.Errorf("init config file failed: load private key err:%s \n", err))
+	}
+
+	if len(Conf.System.KeyDecryptionPwd) <= 0 {
+		Conf.System.KeyDecryptionPwd = KeyDecryptionPwd
 	}
 
 	if len(Conf.Headscale.CA) > 0 {
@@ -202,12 +210,13 @@ type SystemConfig struct {
 	Mode          string `mapstructure:"mode" json:"mode"`
 	UrlPathPrefix string `mapstructure:"url-path-prefix" json:"urlPathPrefix"`
 	//ServerURL     string `mapstructure:"server_url" json:"server_url"`
-	ListenAddr    string          `mapstructure:"listen_addr" json:"listen_addr"`
-	InitData      bool            `mapstructure:"init-data" json:"initData"`
-	RSAPublicKey  string          `mapstructure:"rsa-public-key" json:"rsaPublicKey"`
-	RSAPrivateKey string          `mapstructure:"rsa-private-key" json:"rsaPrivateKey"`
-	PrivateKey    *rsa.PrivateKey `mapstructure:"-" json:"-"`
-	PublicKey     *rsa.PublicKey  `mapstructure:"-" json:"-"`
+	ListenAddr       string          `mapstructure:"listen_addr" json:"listen_addr"`
+	InitData         bool            `mapstructure:"init-data" json:"initData"`
+	RSAPublicKey     string          `mapstructure:"rsa-public-key" json:"rsaPublicKey"`
+	RSAPrivateKey    string          `mapstructure:"rsa-private-key" json:"rsaPrivateKey"`
+	KeyDecryptionPwd string          `mapstructure:"key-decryption-password" json:"-"`
+	PrivateKey       *rsa.PrivateKey `mapstructure:"-" json:"-"`
+	PublicKey        *rsa.PublicKey  `mapstructure:"-" json:"-"`
 }
 
 type LogsConfig struct {

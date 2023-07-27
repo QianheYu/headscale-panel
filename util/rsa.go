@@ -47,7 +47,7 @@ func DecodeStrFromBase64(str string) string {
 }
 
 // LoadPrivateKey loads a private key from a file and returns it
-func LoadPrivateKey(fileName string) (*rsa.PrivateKey, error) {
+func LoadPrivateKey(fileName, password string) (*rsa.PrivateKey, error) {
 	bytes, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
@@ -57,12 +57,39 @@ func LoadPrivateKey(fileName string) (*rsa.PrivateKey, error) {
 		return nil, errors.New("failed to decode PEM block containing private key")
 	}
 
-	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	var privKey any
+	switch block.Type {
+	case "ENCRYPTED PRIVATE KEY":
+		if x509.IsEncryptedPEMBlock(block) {
+			// Warn: Since we won't be using blocks here,
+			// we've chosen to reuse block.Bytes,
+			// so be sure to change this if you use blocks in subsequent extensions.
+			block.Bytes, err = x509.DecryptPEMBlock(block, []byte(password))
+			if err != nil {
+				return nil, fmt.Errorf("DecryptPEMBlock error: %v", err)
+			}
+		}
+		fallthrough
+	case "PRIVATE KEY":
+		privKey, err = x509.ParsePKCS8PrivateKey(block.Bytes)
+	case "RSA PRIVATE KEY":
+		privKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	default:
+		return nil, fmt.Errorf("Unknown or Unsupported private key type")
+	}
+
 	if err != nil {
 		return nil, err
 	}
 
-	return priv, nil
+	switch privKey.(type) {
+	case *rsa.PrivateKey:
+		return privKey.(*rsa.PrivateKey), nil
+	// case *ecdsa.PrivateKey:
+
+	default:
+		return nil, fmt.Errorf("Unsupported private key type")
+	}
 }
 
 // LoadPublicKey loads a public key from a file and returns it

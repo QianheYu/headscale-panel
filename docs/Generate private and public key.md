@@ -8,14 +8,21 @@ Hello! Thank you for your question. JWT (JSON Web Token) is an open standard for
 
 ```
 openssl genrsa -out private.pem 2048
+openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048
 ```
 
 3. Next, you need to extract the public key from the RSA private key. You can use the following command to extract the public key from the RSA private key:
 
 ```
 openssl rsa -in private.pem -outform PEM -pubout -out public.pem
+openssl rsa -in private_key.pem -pubout -out public_key.pem
 ```
 
 This will generate the certificate files required for JWT RS256 signature.
 
 To sign and verify JWTs, you will need to use the private key and public key. The private key is used to sign JWTs, while the public key is used to verify the signature of JWTs. In the previous answer, we generated the private key and public key and saved them in the `private.pem` and `public.pem` files, respectively. So, if you want to sign JWTs, you need to use the `private.pem` file. If you want to verify the signature of JWTs, you need to use the `public.pem` file.
+
+If you have already have a pair of keys in PKCS#1 format, you can use the following command to convert them to pkcs#8 format
+```
+openssl pkcs8 -topk8 -inform PEM -in server.pem -outform PEM -nocrypt -out server_pkcs8.pem
+```
