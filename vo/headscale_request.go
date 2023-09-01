@@ -73,7 +73,7 @@ type DeleteMachineRequest struct {
 // EditMachineRequest struct represents a request to edit a machine. It contains fields for MachineId, Name, State, and Nodekey.
 type EditMachineRequest struct {
 	MachineId uint64 `json:"machine_id" validate:"required_unless=State register"`
-	Name      string `json:"name" validate:"min=0,max=63,lowercase,required_if=State rename"`
+	Name      string `json:"name" validate:"required_if=State rename,omitempty,min=0,max=63,lowercase"`
 	State     string `json:"state" validate:"required,oneof=register rename expire"`
 	Nodekey   string `json:"nodekey" validate:"required_if=State register"`
 }
