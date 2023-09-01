@@ -16,8 +16,8 @@ import (
 )
 
 type IUserRepository interface {
-	Login(user *model.User) (*model.User, error)       // Login
-	ChangePwd(username string, newPasswd string) error // Update password
+	Login(user *model.User) (*model.User, error)   // Login
+	ChangePwd(name string, newPasswd string) error // Update password
 
 	CreateUser(user *model.User) error                              // Create user
 	GetUserById(id uint) (model.User, error)                        // Get single user
@@ -30,9 +30,9 @@ type IUserRepository interface {
 	GetCurrentUserMinRoleSort(c *gin.Context) (uint, model.User, error) // Get the minimum role sorting value (highest level role) and current user information of the current user
 	GetUserMinRoleSortsByIds(ids []uint) ([]int, error)                 // Get the minimum role sorting value by user ID
 
-	SetUserInfoCache(username string, user model.User) // Set user information cache
-	UpdateUserInfoCacheByRoleId(roleId uint) error     // Update the user information cache for users with the role ID
-	ClearUserInfoCache()                               // Clear all user information caches
+	SetUserInfoCache(name string, user model.User) // Set user information cache
+	UpdateUserInfoCacheByRoleId(roleId uint) error // Update the user information cache for users with the role ID
+	ClearUserInfoCache()                           // Clear all user information caches
 }
 
 type UserRepository struct{}
@@ -149,7 +149,7 @@ func (ur UserRepository) GetUsers(req *vo.UserListRequest) ([]*model.User, int64
 
 	username := strings.TrimSpace(req.Username)
 	if username != "" {
-		db = db.Where("username LIKE ?", fmt.Sprintf("%%%s%%", username))
+		db = db.Where("name LIKE ?", fmt.Sprintf("%%%s%%", username))
 	}
 	nickname := strings.TrimSpace(req.Nickname)
 	if nickname != "" {
@@ -185,21 +185,21 @@ func (ur UserRepository) GetUsers(req *vo.UserListRequest) ([]*model.User, int64
 }
 
 // Update password
-func (ur UserRepository) ChangePwd(username string, hashNewPasswd string) error {
-	err := common.DB.Model(&model.User{}).Where("username = ?", username).Update("password", hashNewPasswd).Error
+func (ur UserRepository) ChangePwd(name string, hashNewPasswd string) error {
+	err := common.DB.Model(&model.User{}).Where("name = ?", name).Update("password", hashNewPasswd).Error
 	// If the password is updated successfully, update the current user information cache
 	// First, get the cache
-	cacheUser, found := userInfoCache.Get(username)
+	cacheUser, found := userInfoCache.Get(name)
 	if err == nil {
 		if found {
 			user := cacheUser.(model.User)
 			user.Password = hashNewPasswd
-			userInfoCache.Set(username, user, cache.DefaultExpiration)
+			userInfoCache.Set(name, user, cache.DefaultExpiration)
 		} else {
 			// If there is no cache, get the user information cache
 			var user model.User
-			common.DB.Where("username = ?", username).First(&user)
-			userInfoCache.Set(username, user, cache.DefaultExpiration)
+			common.DB.Where("name = ?", name).First(&user)
+			userInfoCache.Set(name, user, cache.DefaultExpiration)
 		}
 	}
 
@@ -292,8 +292,8 @@ func (ur UserRepository) GetUserMinRoleSortsByIds(ids []uint) ([]int, error) {
 }
 
 // Set user information cache
-func (ur UserRepository) SetUserInfoCache(username string, user model.User) {
-	userInfoCache.Set(username, user, cache.DefaultExpiration)
+func (ur UserRepository) SetUserInfoCache(name string, user model.User) {
+	userInfoCache.Set(name, user, cache.DefaultExpiration)
 }
 
 // Update the user information cache for users with the role ID
