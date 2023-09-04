@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
 	"headscale-panel/util"
+	"headscale-panel/version"
 	"os"
 )
 
@@ -46,9 +47,11 @@ type config struct {
 
 // Set to read configuration information
 func InitConfig() {
+	pflag.BoolP("version", "v", false, "print version")
 	pflag.StringP("config", "c", "", "set config")
 	pflag.Parse()
 	viper.RegisterAlias("c", "config")
+	viper.RegisterAlias("v", "version")
 	viper.SetDefault("config", "/etc/headscale-panel/config.yaml")
 
 	viper.SetEnvPrefix("HEADSCALE_PANEL")
@@ -62,6 +65,12 @@ func InitConfig() {
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
 		fmt.Printf(err.Error())
 	}
+
+	if viper.GetBool("version") {
+		fmt.Println(version.Version)
+		os.Exit(0)
+	}
+
 	configFile := viper.GetString("config")
 	KeyDecryptionPwd := viper.GetString("KEY_DECRYPTION_PWD")
 
