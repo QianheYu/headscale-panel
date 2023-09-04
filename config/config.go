@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"go.uber.org/zap/zapcore"
@@ -26,8 +25,6 @@ var mode int
 func GetMode() int {
 	return mode
 }
-
-var configFlag = &cobra.Command{}
 
 // System configuration, corresponding to yml
 // viper has a built-in mapstructure, yml files use "-" to distinguish words, turn them into humps for convenience
@@ -56,14 +53,14 @@ func InitConfig() {
 
 	viper.SetEnvPrefix("HEADSCALE_PANEL")
 	if err := viper.BindEnv("config"); err != nil {
-		fmt.Printf(err.Error())
+		fmt.Printf("bind config file env error: %s\n", err.Error())
 	}
 	if err := viper.BindEnv("KEY_DECRYPTION_PWD"); err != nil {
-		fmt.Printf(err.Error())
+		fmt.Printf("bind key decryption password error: %s\n", err.Error())
 	}
 
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
-		fmt.Printf(err.Error())
+		fmt.Printf("bind param flags error: %s\n", err.Error())
 	}
 
 	if viper.GetBool("version") {
