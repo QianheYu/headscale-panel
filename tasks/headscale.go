@@ -168,7 +168,6 @@ func (h *HeadscaleService) checkProcess() {
 			log.Log.Errorf("deamon start headscale process error: %v", err)
 		}
 	}
-	return
 }
 
 // Gets the headscale versions from GitHub.
@@ -219,10 +218,10 @@ func (h *HeadscaleService) Install(id uint) error {
 		return err
 	}
 
-	// 根据系统架构选择合适的版本
+	// Choose the right version according to the system architecture
 	osArch := fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH)
 	for _, version := range release.Assets {
-		if strings.Index(version.DownloadUrl, osArch) != -1 {
+		if strings.Contains(version.DownloadUrl, osArch) {
 			uri = version.DownloadUrl
 			break
 		}
