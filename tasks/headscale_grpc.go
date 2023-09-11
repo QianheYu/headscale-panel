@@ -158,7 +158,7 @@ func (h *headscaleRPC) connect(conf *model.HeadscaleConfig) error {
 		if err != nil {
 			//errors.New("rpc error: code = Unavailable desc = context deadline exceeded")
 			if retryTimes <= 1 && config.GetMode() < config.MULTI {
-				if err.Error() == "rpc error: code = Internal desc = failed to validate token" {
+				if err.Error() == "rpc error: code = Internal desc = failed to validate token" || err.Error() == "rpc error: code = Unauthenticated desc = invalid token" {
 					// if not have apikey or apikey is invalid, create an other one
 					// then write it to database
 					if err := h.newApiKey(conf); err != nil {
@@ -224,7 +224,7 @@ func (h *headscaleRPC) unaryClientInterceptor(ctx context.Context, method string
 		if err != nil {
 			log.Log.Errorf("grpc: %s, duration: %dms, remote_server: %s, err: %v", method, duration, remoteServer, err)
 			h.status = -1
-			if err.Error() == "rpc error: code = Internal desc = failed to validate token" {
+			if err.Error() == "rpc error: code = Internal desc = failed to validate token" || err.Error() == "rpc error: code = Unauthenticated desc = invalid token" {
 				if err := h.newApiKey(common.GetHeadscaleConfig()); err != nil {
 					log.Log.Error("gRPC connection Failed to refresh api key: ", err)
 				}
