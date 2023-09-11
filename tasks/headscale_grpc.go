@@ -95,7 +95,7 @@ func (h *headscaleRPC) Connect() error {
 			return fmt.Errorf("cannot load server cert and key, %v", err)
 		}
 
-		// 创建TLS凭证
+		// Creating TLS Credentials
 		creds := credentials.NewTLS(&tls.Config{
 			ServerName:   conf.ServerName,
 			Certificates: []tls.Certificate{cert},

@@ -13,7 +13,7 @@ import (
 
 type IMachinesController interface {
 	GetMachines(c *gin.Context)   // method: get
-	StateMachines(c *gin.Context) // method: post 重新构建request结构
+	StateMachines(c *gin.Context) // method: post Refactoring the request structure
 	DeleteMachine(c *gin.Context) // method: delete
 	MoveMachine(c *gin.Context)
 	SetTags(c *gin.Context)
@@ -45,7 +45,7 @@ func (m *machinesController) GetMachines(c *gin.Context) {
 	response.Success(c, machines, "success")
 }
 
-// StateMachines 对设备进行注册、过期、重命名操作
+// StateMachines Register, expire, and rename devices.
 func (m *machinesController) StateMachines(c *gin.Context) {
 	req := &vo.EditMachineRequest{}
 	// Bind parameters
