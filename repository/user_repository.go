@@ -53,13 +53,13 @@ func (ur UserRepository) Login(user *model.User) (*model.User, error) {
 		Preload("Roles").
 		First(&firstUser).Error
 	if err != nil {
-		return nil, errors.New("User does not exist")
+		return nil, errors.New("user does not exist")
 	}
 
 	// Determine the user's status
 	userStatus := firstUser.Status
 	if userStatus != 1 {
-		return nil, errors.New("User is disabled")
+		return nil, errors.New("user is disabled")
 	}
 
 	// Determine the status of all roles owned by the user, and if all roles are disabled, the user cannot log in
@@ -74,13 +74,13 @@ func (ur UserRepository) Login(user *model.User) (*model.User, error) {
 	}
 
 	if !isValidate {
-		return nil, errors.New("User role is disabled")
+		return nil, errors.New("user role is disabled")
 	}
 
 	// Verify password
 	err = util.ComparePasswd(firstUser.Password, user.Password)
 	if err != nil {
-		return &firstUser, errors.New("Wrong password")
+		return &firstUser, errors.New("wrong password")
 	}
 	return &firstUser, nil
 }
@@ -91,7 +91,7 @@ func (ur UserRepository) GetCurrentUser(c *gin.Context) (model.User, error) {
 	var newUser model.User
 	ctxUser, exist := c.Get("user")
 	if !exist {
-		return newUser, errors.New("User not logged in")
+		return newUser, errors.New("user not logged in")
 	}
 	u, _ := ctxUser.(model.User)
 
@@ -240,7 +240,7 @@ func (ur UserRepository) BatchDeleteUserByIds(ids []uint) error {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue
 			}
-			return errors.New(fmt.Sprintf(" Get user with ID %d not found", id))
+			return fmt.Errorf(" Get user with ID %d not found", id)
 		}
 		users = append(users, user)
 	}
@@ -272,7 +272,7 @@ func (ur UserRepository) GetUserMinRoleSortsByIds(ids []uint) ([]int, error) {
 		return []int{}, err
 	}
 	if len(userList) == 0 {
-		return []int{}, errors.New("No user information found")
+		return []int{}, errors.New("no user information found")
 	}
 	var roleMinSortList []int
 	for _, user := range userList {
@@ -302,12 +302,12 @@ func (ur UserRepository) UpdateUserInfoCacheByRoleId(roleId uint) error {
 	var role model.Role
 	err := common.DB.Where("id = ?", roleId).Preload("Users").First(&role).Error
 	if err != nil {
-		return errors.New("Failed to get role information by role ID")
+		return errors.New("failed to get role information by role ID")
 	}
 
 	users := role.Users
 	if len(users) == 0 {
-		return errors.New("The user with the role was not retrieved based on the role ID")
+		return errors.New("the user with the role was not retrieved based on the role ID")
 	}
 
 	// Update user information cache

@@ -101,7 +101,7 @@ func (r RoleRepository) GetRoleApisByRoleKeyword(roleKeyword string) ([]*model.A
 	var apis []*model.Api
 	err := common.DB.Find(&apis).Error
 	if err != nil {
-		return apis, errors.New("Get role's permission API failed")
+		return apis, errors.New("get role's permission API failed")
 	}
 
 	accessApis := make([]*model.Api, 0)
@@ -126,22 +126,22 @@ func (r RoleRepository) UpdateRoleApis(roleKeyword string, reqRolePolicies [][]s
 	// Get the existing police corresponding to the role ID in the path (to be deleted first)
 	err := common.CasbinEnforcer.LoadPolicy()
 	if err != nil {
-		return errors.New("Role's permission API strategy loading failed")
+		return errors.New("role's permission API strategy loading failed")
 	}
 	rmPolicies := common.CasbinEnforcer.GetFilteredPolicy(0, roleKeyword)
 	if len(rmPolicies) > 0 {
 		isRemoved, _ := common.CasbinEnforcer.RemovePolicies(rmPolicies)
 		if !isRemoved {
-			return errors.New("Update role's permission API failed")
+			return errors.New("update role's permission API failed")
 		}
 	}
 	isAdded, _ := common.CasbinEnforcer.AddPolicies(reqRolePolicies)
 	if !isAdded {
-		return errors.New("Update role's permission API failed")
+		return errors.New("update role's permission API failed")
 	}
 	err = common.CasbinEnforcer.LoadPolicy()
 	if err != nil {
-		return errors.New("Update role's permission API succeeded, role's permission API strategy loading failed")
+		return errors.New("update role's permission API succeeded, role's permission API strategy loading failed")
 	} else {
 		return err
 	}
@@ -163,7 +163,7 @@ func (r RoleRepository) BatchDeleteRoleByIds(roleIds []uint) error {
 			if len(rmPolicies) > 0 {
 				isRemoved, _ := common.CasbinEnforcer.RemovePolicies(rmPolicies)
 				if !isRemoved {
-					return errors.New("Delete role succeeded, delete role related permission API failed")
+					return errors.New("delete role succeeded, delete role related permission API failed")
 				}
 			}
 		}

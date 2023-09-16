@@ -116,7 +116,7 @@ func (a ApiRepository) UpdateApiById(apiId uint, api *model.Api) error {
 	var oldApi model.Api
 	err := common.DB.First(&oldApi, apiId).Error
 	if err != nil {
-		return errors.New("Failed to get API information by API ID")
+		return errors.New("failed to get API information by API ID")
 	}
 	err = common.DB.Model(api).Where("id = ?", apiId).Updates(api).Error
 	if err != nil {
@@ -130,7 +130,7 @@ func (a ApiRepository) UpdateApiById(apiId uint, api *model.Api) error {
 			// Delete
 			isRemoved, _ := common.CasbinEnforcer.RemovePolicies(policies)
 			if !isRemoved {
-				return errors.New("Update permission API failed")
+				return errors.New("update permission API failed")
 			}
 			for _, policy := range policies {
 				policy[1] = api.Path
@@ -139,12 +139,12 @@ func (a ApiRepository) UpdateApiById(apiId uint, api *model.Api) error {
 			// Add
 			isAdded, _ := common.CasbinEnforcer.AddPolicies(policies)
 			if !isAdded {
-				return errors.New("Update permission API failed")
+				return errors.New("update permission API failed")
 			}
 			// Load policy
 			err := common.CasbinEnforcer.LoadPolicy()
 			if err != nil {
-				return errors.New("Update permission API succeeded, permission API strategy loading failed")
+				return errors.New("update permission API succeeded, permission API strategy loading failed")
 			} else {
 				return err
 			}
@@ -158,7 +158,7 @@ func (a ApiRepository) BatchDeleteApiByIds(apiIds []uint) error {
 
 	apis, err := a.GetApisById(apiIds)
 	if err != nil {
-		return errors.New("Failed to get API list by interface ID")
+		return errors.New("failed to get API list by interface ID")
 	}
 	if len(apis) == 0 {
 		return errors.New("API list not obtained by interface ID")
@@ -172,14 +172,14 @@ func (a ApiRepository) BatchDeleteApiByIds(apiIds []uint) error {
 			if len(policies) > 0 {
 				isRemoved, _ := common.CasbinEnforcer.RemovePolicies(policies)
 				if !isRemoved {
-					return errors.New("Delete permission API failed")
+					return errors.New("delete permission API failed")
 				}
 			}
 		}
 		// Reload policy
 		err := common.CasbinEnforcer.LoadPolicy()
 		if err != nil {
-			return errors.New("Delete permission API succeeded, permission API strategy loading failed")
+			return errors.New("delete permission API succeeded, permission API strategy loading failed")
 		} else {
 			return err
 		}
