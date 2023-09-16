@@ -3,7 +3,6 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"headscale-panel/log"
 	"time"
@@ -42,10 +41,10 @@ func (m *NoticeController) Controller(c *gin.Context) {
 	for i := 0; i < 10; i++ {
 		data, err := json.Marshal(Template{Content: "test"})
 		if err != nil {
-			fmt.Errorf("%s", err.Error())
+			log.Log.Error(err)
 			continue
 		}
-		m.notice <- fmt.Sprintf("%s", string(data))
+		m.notice <- string(data)
 		time.Sleep(12 * time.Second)
 	}
 }

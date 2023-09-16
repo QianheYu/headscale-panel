@@ -107,7 +107,6 @@ func (ac ApiController) CreateApi(c *gin.Context) {
 	}
 
 	response.Success(c, nil, "Create API successfully")
-	return
 }
 
 // Update Api
