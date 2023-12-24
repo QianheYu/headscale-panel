@@ -1,6 +1,6 @@
 package vo
 
-import pb "headscale-panel/gen/headscale/v1"
+import pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 
 // ApiKey start
 type CreateApiKey struct {
@@ -38,9 +38,9 @@ type DeleteRouteRequest struct {
 	pb.DeleteRouteRequest
 }
 
-// GetMachineRoutesRequest struct represents a request to get all routes for a machine.
-type GetMachineRoutesRequest struct {
-	pb.GetMachineRoutesRequest
+// GetNodeRoutesRequest struct represents a request to get all routes for a node.
+type GetNodeRoutesRequest struct {
+	pb.GetNodeRoutesRequest
 }
 
 // RouteRequest struct represents a request for a specific route.
@@ -54,51 +54,51 @@ type SwitchRouteRequest struct {
 	Enable  bool   `json:"enable" form:"enable"`
 }
 
-// Machine start
-// ListMachinesRequest struct represents a request to list all machines.
-type ListMachinesRequest struct {
-	pb.ListMachinesRequest
+// Node start
+// ListNodesRequest struct represents a request to list all nodes.
+type ListNodesRequest struct {
+	pb.ListNodesRequest
 }
 
-// RegisterMachine struct represents a request to register a new machine.
-type RegisterMachine struct {
-	pb.RegisterMachineRequest
+// RegisterNode struct represents a request to register a new node.
+type RegisterNode struct {
+	pb.RegisterNodeRequest
 }
 
-// DeleteMachineRequest struct represents a request to delete a machine.
-type DeleteMachineRequest struct {
-	pb.DeleteMachineRequest
+// DeleteNodeRequest struct represents a request to delete a node.
+type DeleteNodeRequest struct {
+	pb.DeleteNodeRequest
 }
 
-// EditMachineRequest struct represents a request to edit a machine. It contains fields for MachineId, Name, State, and Nodekey.
-type EditMachineRequest struct {
-	MachineId uint64 `json:"machine_id" validate:"required_unless=State register"`
-	Name      string `json:"name" validate:"required_if=State rename,omitempty,min=0,max=63,lowercase"`
-	State     string `json:"state" validate:"required,oneof=register rename expire"`
-	Nodekey   string `json:"nodekey" validate:"required_if=State register"`
+// EditNodeRequest struct represents a request to edit a node. It contains fields for NodeId, Name, State, and Nodekey.
+type EditNodeRequest struct {
+	NodeId  uint64 `json:"node_id" validate:"required_unless=State register"`
+	Name    string `json:"name" validate:"required_if=State rename,omitempty,min=0,max=63,lowercase"`
+	State   string `json:"state" validate:"required,oneof=register rename expire"`
+	Nodekey string `json:"nodekey" validate:"required_if=State register"`
 }
 
-// GetMachineRequest struct represents a request to get details of a specific machine.
-type GetMachineRequest struct {
-	pb.GetMachineRequest
+// GetNodeRequest struct represents a request to get details of a specific node.
+type GetNodeRequest struct {
+	pb.GetNodeRequest
 }
 
-// ExpireMachineRequest struct represents a request to expire a machine.
-type ExpireMachineRequest struct {
-	pb.ExpireMachineRequest
+// ExpireNodeRequest struct represents a request to expire a node.
+type ExpireNodeRequest struct {
+	pb.ExpireNodeRequest
 }
 
-// MoveMachineRequest struct represents a request to move a machine to a different group.
-type MoveMachineRequest struct {
-	pb.MoveMachineRequest
+// MoveNodeRequest struct represents a request to move a node to a different group.
+type MoveNodeRequest struct {
+	pb.MoveNodeRequest
 }
 
-// SetTagsRequest struct represents a request to set tags for a machine.
+// SetTagsRequest struct represents a request to set tags for a node.
 type SetTagsRequest struct {
 	pb.SetTagsRequest
 }
 
-// SetAccessControlRequest struct represents a request to set access control for a machine.
+// SetAccessControlRequest struct represents a request to set access control for a node.
 type SetAccessControlRequest struct {
 	Content string `json:"content" validate:"required"`
 }

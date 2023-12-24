@@ -11,43 +11,43 @@ import (
 	"headscale-panel/vo"
 )
 
-type IMachinesController interface {
-	GetMachines(c *gin.Context)   // method: get
-	StateMachines(c *gin.Context) // method: post Refactoring the request structure
-	DeleteMachine(c *gin.Context) // method: delete
-	MoveMachine(c *gin.Context)
+type INodesController interface {
+	GetNodes(c *gin.Context)   // method: get
+	StateNodes(c *gin.Context) // method: post Refactoring the request structure
+	DeleteNode(c *gin.Context) // method: delete
+	MoveNode(c *gin.Context)
 	SetTags(c *gin.Context)
 }
 
-type machinesController struct {
-	userRepo     repository.IUserRepository
-	machinesRepo repository.HeadscaleMachinesRepository
+type NodesController struct {
+	userRepo  repository.IUserRepository
+	NodesRepo repository.HeadscaleNodesRepository
 }
 
-func NewMachinesController() IMachinesController {
-	return &machinesController{userRepo: repository.NewUserRepository(), machinesRepo: repository.NewMachinesRepo()}
+func NewNodesController() INodesController {
+	return &NodesController{userRepo: repository.NewUserRepository(), NodesRepo: repository.NewNodesRepo()}
 }
 
-// GetMachines
-func (m *machinesController) GetMachines(c *gin.Context) {
+// GetNodes
+func (m *NodesController) GetNodes(c *gin.Context) {
 	//user, err := m.userRepo.GetCurrentUser(c)
 	//if err != nil {
-	//	response.Fail(c, nil, "Failed to get machine")
+	//	response.Fail(c, nil, "Failed to get Node")
 	//	log.Log.Errorf("get current user error: %v", err)
 	//	return
 	//}
-	machines, err := m.machinesRepo.ListMachinesWithUser("")
+	Nodes, err := m.NodesRepo.ListNodesWithUser("")
 	if err != nil && err.Error() != "rpc error: code = Unknown desc = User not found" {
-		response.Fail(c, nil, "Failed to get machines")
-		log.Log.Errorf("get machine error: %v", err)
+		response.Fail(c, nil, "Failed to get Nodes")
+		log.Log.Errorf("get Node error: %v", err)
 		return
 	}
-	response.Success(c, machines, "success")
+	response.Success(c, Nodes, "success")
 }
 
-// StateMachines Register, expire, and rename devices.
-func (m *machinesController) StateMachines(c *gin.Context) {
-	req := &vo.EditMachineRequest{}
+// StateNodes Register, expire, and rename devices.
+func (m *NodesController) StateNodes(c *gin.Context) {
+	req := &vo.EditNodeRequest{}
 	// Bind parameters
 	if err := c.ShouldBind(&req); err != nil {
 		response.Fail(c, nil, "param error")
@@ -65,34 +65,34 @@ func (m *machinesController) StateMachines(c *gin.Context) {
 	var data interface{}
 	switch req.State {
 	case "rename":
-		// rename machine
-		data, err = m.machinesRepo.RenameMachineWithNewName(req.MachineId, req.Name)
+		// rename node
+		data, err = m.NodesRepo.RenameNodeWithNewName(req.NodeId, req.Name)
 	case "expire":
-		// expire machine
-		data, err = m.machinesRepo.ExpireMachineWithId(req.MachineId)
+		// expire node
+		data, err = m.NodesRepo.ExpireNodeWithId(req.NodeId)
 	case "register":
-		// register machine
+		// register node
 		var user model.User
 		user, err = m.userRepo.GetCurrentUser(c)
 		if err != nil {
 			break
 		}
-		data, err = m.machinesRepo.RegisterMachineWithKey(user.Name, req.Nodekey)
+		data, err = m.NodesRepo.RegisterNodeWithKey(user.Name, req.Nodekey)
 	default:
 		response.Fail(c, nil, "params error")
 		return
 	}
 	if err != nil {
 		response.Fail(c, nil, "Failed to operate")
-		log.Log.Errorf("operate machine error: %v", err)
+		log.Log.Errorf("operate node error: %v", err)
 		return
 	}
 	response.Success(c, data, "success")
 }
 
-// MoveMachine move machine to another user
-func (m *machinesController) MoveMachine(c *gin.Context) {
-	req := &vo.MoveMachineRequest{}
+// MoveNode move node to another user
+func (m *NodesController) MoveNode(c *gin.Context) {
+	req := &vo.MoveNodeRequest{}
 
 	// Bind parameters
 	if err := c.ShouldBindJSON(req); err != nil {
@@ -107,18 +107,18 @@ func (m *machinesController) MoveMachine(c *gin.Context) {
 		return
 	}
 
-	machine, err := m.machinesRepo.MoveMachine(req)
+	Node, err := m.NodesRepo.MoveNode(req)
 	if err != nil {
-		response.Fail(c, nil, "Failed to move machine")
-		log.Log.Errorf("move machine error: %v", err)
+		response.Fail(c, nil, "Failed to move Node")
+		log.Log.Errorf("move Node error: %v", err)
 		return
 	}
-	response.Success(c, machine, "move success")
+	response.Success(c, Node, "move success")
 }
 
-// DeleteMachine delete machine
-func (m *machinesController) DeleteMachine(c *gin.Context) {
-	req := &vo.DeleteMachineRequest{}
+// DeleteNode delete node
+func (m *NodesController) DeleteNode(c *gin.Context) {
+	req := &vo.DeleteNodeRequest{}
 
 	// Bind parameters
 	if err := c.ShouldBindJSON(req); err != nil {
@@ -133,16 +133,16 @@ func (m *machinesController) DeleteMachine(c *gin.Context) {
 		return
 	}
 
-	if err := m.machinesRepo.DeleteMachine(req); err != nil {
-		response.Fail(c, nil, "Failed to delete machine")
-		log.Log.Errorf("delete machine error: %v", err)
+	if err := m.NodesRepo.DeleteNode(req); err != nil {
+		response.Fail(c, nil, "Failed to delete node")
+		log.Log.Errorf("delete node error: %v", err)
 		return
 	}
 	response.Success(c, nil, "success")
 }
 
-// SetTags set tag on machine
-func (m *machinesController) SetTags(c *gin.Context) {
+// SetTags set tag on node
+func (m *NodesController) SetTags(c *gin.Context) {
 	req := &vo.SetTagsRequest{}
 
 	// Bind parameters
@@ -158,7 +158,7 @@ func (m *machinesController) SetTags(c *gin.Context) {
 		return
 	}
 
-	data, err := m.machinesRepo.SetTagsWithStringSlice(req.MachineId, req.Tags)
+	data, err := m.NodesRepo.SetTagsWithStringSlice(req.NodeId, req.Tags)
 	if err != nil {
 		response.Fail(c, nil, "Failed to set tag")
 		log.Log.Errorf("set tag error: %v", err)

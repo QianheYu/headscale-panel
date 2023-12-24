@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/patrickmn/go-cache"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	pb "headscale-panel/gen/headscale/v1"
 	"headscale-panel/log"
 	task "headscale-panel/tasks"
 	"headscale-panel/vo"
@@ -18,7 +18,7 @@ import (
 // Cache for different interfaces
 var apiCache = cache.New(cache.DefaultExpiration, time.Hour)
 var preAuthKeyCache = cache.New(cache.DefaultExpiration, time.Hour)
-var machineCache = cache.New(time.Minute, time.Minute)
+var NodeCache = cache.New(time.Minute, time.Minute)
 var routeCache = cache.New(time.Minute, time.Minute)
 var usersCache = cache.New(24*time.Hour, 48*time.Hour) // usersCache is a cache that stores user information with expiration time of 24 hours.
 var syncUserDataChan = make(chan bool, 1)              // syncUserDataChan is a channel used for synchronizing user data.
@@ -56,33 +56,33 @@ type HeadscaleUserRepository interface {
 // HeadscaleRouteRepository is an interface for managing route information.
 type HeadscaleRouteRepository interface {
 	GetRoutes() ([]*pb.Route, error)
-	GetMachineRoutes(request *vo.GetMachineRoutesRequest) ([]*pb.Route, error)
-	GetMachineRoutesWithId(machineId uint64) ([]*pb.Route, error)
+	GetNodeRoutes(request *vo.GetNodeRoutesRequest) ([]*pb.Route, error)
+	GetNodeRoutesWithId(NodeId uint64) ([]*pb.Route, error)
 	DeleteRoute(request *vo.DeleteRouteRequest) error
 	DeleteRouteWithId(routeId uint64) error
 	SwitchRoute(request *vo.SwitchRouteRequest) error
 	SwitchRouteWithId(routeId uint64, enable bool) error
 }
 
-// HeadscaleMachinesRepository is an interface for managing machine information.
-type HeadscaleMachinesRepository interface {
-	ListMachines(user *vo.ListMachinesRequest) ([]*pb.Machine, error)
-	ListMachinesWithUser(user string) ([]*pb.Machine, error)
-	GetMachine(getMachine *vo.GetMachineRequest) (*pb.Machine, error)
-	GetMachineWithId(machineId uint64) (*pb.Machine, error)
-	ExpireMachine(expireMachine *vo.ExpireMachineRequest) (*pb.Machine, error)
-	ExpireMachineWithId(machineId uint64) (*pb.Machine, error)
-	RenameMachine(machineId uint64, name string) (*pb.Machine, error)
-	RenameMachineWithNewName(machineId uint64, name string) (*pb.Machine, error)
-	MoveMachine(machine *vo.MoveMachineRequest) (*pb.Machine, error)
-	MoveMachineWithUser(machineId uint64, user string) (*pb.Machine, error)
-	DeleteMachine(machine *vo.DeleteMachineRequest) error
-	DeleteMachineWithId(machineId uint64) error
-	RegisterMachine(newMachine *vo.RegisterMachine) (*pb.Machine, error)
-	RegisterMachineWithKey(user, key string) (*pb.Machine, error)
-	SetTags(tags *vo.SetTagsRequest) (*pb.Machine, error)
-	SetTagsWithStringSlice(machineId uint64, tags []string) (*pb.Machine, error)
-	SetTagsWithStrings(machineId uint64, tags ...string) (*pb.Machine, error)
+// HeadscaleNodesRepository is an interface for managing Node information.
+type HeadscaleNodesRepository interface {
+	ListNodes(user *vo.ListNodesRequest) ([]*pb.Node, error)
+	ListNodesWithUser(user string) ([]*pb.Node, error)
+	GetNode(getNode *vo.GetNodeRequest) (*pb.Node, error)
+	GetNodeWithId(NodeId uint64) (*pb.Node, error)
+	ExpireNode(expireNode *vo.ExpireNodeRequest) (*pb.Node, error)
+	ExpireNodeWithId(NodeId uint64) (*pb.Node, error)
+	RenameNode(NodeId uint64, name string) (*pb.Node, error)
+	RenameNodeWithNewName(NodeId uint64, name string) (*pb.Node, error)
+	MoveNode(Node *vo.MoveNodeRequest) (*pb.Node, error)
+	MoveNodeWithUser(NodeId uint64, user string) (*pb.Node, error)
+	DeleteNode(Node *vo.DeleteNodeRequest) error
+	DeleteNodeWithId(NodeId uint64) error
+	RegisterNode(newNode *vo.RegisterNode) (*pb.Node, error)
+	RegisterNodeWithKey(user, key string) (*pb.Node, error)
+	SetTags(tags *vo.SetTagsRequest) (*pb.Node, error)
+	SetTagsWithStringSlice(NodeId uint64, tags []string) (*pb.Node, error)
+	SetTagsWithStrings(NodeId uint64, tags ...string) (*pb.Node, error)
 }
 
 // headscaleRepository is a struct that implements all the repository interfaces.
@@ -108,8 +108,8 @@ func NewRouteRepo() HeadscaleRouteRepository {
 	return &headscaleRepository{}
 }
 
-// NewMachinesRepo returns a new instance of HeadscaleMachinesRepository.
-func NewMachinesRepo() HeadscaleMachinesRepository {
+// NewNodesRepo returns a new instance of HeadscaleNodesRepository.
+func NewNodesRepo() HeadscaleNodesRepository {
 	return &headscaleRepository{}
 }
 
@@ -359,43 +359,43 @@ func (h *headscaleRepository) DeleteRouteWithId(routeId uint64) (err error) {
 	return
 }
 
-// GetMachineRoutes This method takes a GetMachineRoutesRequest
+// GetNodeRoutes This method takes a GetNodeRoutesRequest
 // and returns a slice of pb.Route and an error. If the routes
-// for the given machineId are present in the routeCache, it returns them.
-// Otherwise, it calls task.HeadscaleControl.GetMachineRoutes to get the routes.
+// for the given nodeId are present in the routeCache, it returns them.
+// Otherwise, it calls task.HeadscaleControl.GetNodeRoutes to get the routes.
 // If the call is successful, it adds the routes to the routeCache with an expiration time
 // of one minute and returns the routes and any error that occurred.
-func (h *headscaleRepository) GetMachineRoutes(request *vo.GetMachineRoutesRequest) ([]*pb.Route, error) {
-	if routes, ok := routeCache.Get(strconv.FormatUint(request.MachineId, 10)); ok {
+func (h *headscaleRepository) GetNodeRoutes(request *vo.GetNodeRoutesRequest) ([]*pb.Route, error) {
+	if routes, ok := routeCache.Get(strconv.FormatUint(request.NodeId, 10)); ok {
 		return routes.([]*pb.Route), nil
 	}
-	routes, err := task.HeadscaleControl.GetMachineRoutes(context.Background(), &request.GetMachineRoutesRequest)
+	routes, err := task.HeadscaleControl.GetNodeRoutes(context.Background(), &request.GetNodeRoutesRequest)
 	if err != nil {
 		return nil, err
 	}
-	if len(routes.Routes) > 0 && routes.Routes[0].Machine != nil {
-		if err = routeCache.Add(strconv.FormatUint(routes.Routes[0].Machine.Id, 10), routes.Routes, time.Minute); err != nil {
-			log.Log.Errorf("add routes by machineid to cache error:%v", err)
+	if len(routes.Routes) > 0 && routes.Routes[0].Node != nil {
+		if err = routeCache.Add(strconv.FormatUint(routes.Routes[0].Node.Id, 10), routes.Routes, time.Minute); err != nil {
+			log.Log.Errorf("add routes by nodeid to cache error:%v", err)
 		}
 	}
 	return routes.Routes, err
 }
 
-// GetMachineRoutesWithId This method takes a machineId and returns a slice of pb.Route and an error.
-// If the routes for the given machineId are present in the routeCache, it returns them.
-// Otherwise, it calls task.HeadscaleControl.GetMachineRoutes to get the routes. If the call is successful,
+// GetNodeRoutesWithId This method takes a nodeId and returns a slice of pb.Route and an error.
+// If the routes for the given nodeId are present in the routeCache, it returns them.
+// Otherwise, it calls task.HeadscaleControl.GetNodeRoutes to get the routes. If the call is successful,
 // it adds the routes to the routeCache with an expiration time of one minute and returns the routes and any error that occurred.
-func (h *headscaleRepository) GetMachineRoutesWithId(machineId uint64) ([]*pb.Route, error) {
-	if routes, ok := routeCache.Get(strconv.FormatUint(machineId, 10)); ok {
+func (h *headscaleRepository) GetNodeRoutesWithId(NodeId uint64) ([]*pb.Route, error) {
+	if routes, ok := routeCache.Get(strconv.FormatUint(NodeId, 10)); ok {
 		return routes.([]*pb.Route), nil
 	}
-	routes, err := task.HeadscaleControl.GetMachineRoutes(context.Background(), &pb.GetMachineRoutesRequest{MachineId: machineId})
+	routes, err := task.HeadscaleControl.GetNodeRoutes(context.Background(), &pb.GetNodeRoutesRequest{NodeId: NodeId})
 	if err != nil {
 		return nil, err
 	}
-	if len(routes.Routes) > 0 && routes.Routes[0].Machine != nil {
-		if err = routeCache.Add(strconv.FormatUint(routes.Routes[0].Machine.Id, 10), routes.Routes, time.Minute); err != nil {
-			log.Log.Errorf("add routes by machineid to cache error:%v", err)
+	if len(routes.Routes) > 0 && routes.Routes[0].Node != nil {
+		if err = routeCache.Add(strconv.FormatUint(routes.Routes[0].Node.Id, 10), routes.Routes, time.Minute); err != nil {
+			log.Log.Errorf("add routes by nodeid to cache error:%v", err)
 		}
 	}
 	return routes.Routes, err
@@ -435,273 +435,305 @@ func (h *headscaleRepository) SwitchRouteWithId(routeId uint64, enable bool) (er
 
 // Route end
 
-// Machine start
+// Node start
 
-// ListMachines retrieves a list of machines for a given user, either from cache or by calling the HeadscaleControl API.
-// If the machines are retrieved from cache, they are returned immediately.
-// Otherwise, the HeadscaleControl API is called with the user's ListMachinesRequest, and the resulting machines are added to cache before being returned.
-// If there is an error retrieving the machines, an error is returned.
-func (h *headscaleRepository) ListMachines(user *vo.ListMachinesRequest) ([]*pb.Machine, error) {
-	if machines, ok := machineCache.Get(user.User); ok {
-		return machines.([]*pb.Machine), nil
+// ListNodes retrieves a list of nodes for a given user, either from cache or by calling the HeadscaleControl API.
+// If the nodes are retrieved from cache, they are returned immediately.
+// Otherwise, the HeadscaleControl API is called with the user's ListNodesRequest, and the resulting nodes are added to cache before being returned.
+// If there is an error retrieving the nodes, an error is returned.
+func (h *headscaleRepository) ListNodes(user *vo.ListNodesRequest) ([]*pb.Node, error) {
+	if Nodes, ok := NodeCache.Get(user.User); ok {
+		return Nodes.([]*pb.Node), nil
 	}
-	machines, err := task.HeadscaleControl.ListMachines(context.Background(), &user.ListMachinesRequest)
+	Nodes, err := task.HeadscaleControl.ListNodes(context.Background(), &user.ListNodesRequest)
 	if err != nil {
 		return nil, err
 	}
-	if err = machineCache.Add(user.User, machines.Machines, cache.DefaultExpiration); err != nil {
-		log.Log.Errorf("add machines to cache error:%v", err)
+	if err = NodeCache.Add(user.User, Nodes.Nodes, cache.DefaultExpiration); err != nil {
+		log.Log.Errorf("add Nodes to cache error:%v", err)
 	}
-	return machines.Machines, nil
+	return Nodes.Nodes, nil
 }
 
-// ListMachinesWithUser retrieves a list of machines for a given user, either from cache or by calling the HeadscaleControl API.
-// If the machines are retrieved from cache, they are returned immediately.
-// Otherwise, the HeadscaleControl API is called with a ListMachinesRequest containing the user's name, and the resulting machines are added to cache before being returned.
-// If there is an error retrieving the machines, an error is returned.
-func (h *headscaleRepository) ListMachinesWithUser(user string) ([]*pb.Machine, error) {
-	if machines, ok := machineCache.Get(user); ok {
-		return machines.([]*pb.Machine), nil
+// ListNodesWithUser retrieves a list of nodes for a given user, either from cache or by calling the HeadscaleControl API.
+// If the Nodes are retrieved from cache, they are returned immediately.
+// Otherwise, the HeadscaleControl API is called with a ListNodesRequest containing the user's name, and the resulting Nodes are added to cache before being returned.
+// If there is an error retrieving the nodes, an error is returned.
+func (h *headscaleRepository) ListNodesWithUser(user string) ([]*pb.Node, error) {
+	if Nodes, ok := NodeCache.Get(user); ok {
+		return Nodes.([]*pb.Node), nil
 	}
-	machines, err := task.HeadscaleControl.ListMachines(context.Background(), &pb.ListMachinesRequest{User: user})
+	Nodes, err := task.HeadscaleControl.ListNodes(context.Background(), &pb.ListNodesRequest{User: user})
 	if err != nil {
 		return nil, err
 	}
-	if err = machineCache.Add(user, machines.Machines, cache.DefaultExpiration); err != nil {
-		log.Log.Errorf("add machines to cache error:%v", err)
+	if err = NodeCache.Add(user, Nodes.Nodes, cache.DefaultExpiration); err != nil {
+		log.Log.Errorf("add Nodes to cache error:%v", err)
 	}
-	return machines.Machines, nil
+	return Nodes.Nodes, nil
 }
 
-// GetMachine retrieves a machine with a given ID, either from cache or by calling the HeadscaleControl API.
-// If the machine is retrieved from cache, it is returned immediately.
-// Otherwise, the HeadscaleControl API is called with the GetMachineRequest, and the resulting machine is added to cache before being returned.
-// If there is an error retrieving the machine, an error is returned.
-func (h *headscaleRepository) GetMachine(getMachine *vo.GetMachineRequest) (*pb.Machine, error) {
-	if machine, ok := machineCache.Get(strconv.FormatUint(getMachine.MachineId, 10)); ok {
-		return machine.(*pb.Machine), nil
+// GetNode retrieves a node with a given ID, either from cache or by calling the HeadscaleControl API.
+// If the node is retrieved from cache, it is returned immediately.
+// Otherwise, the HeadscaleControl API is called with the GetNodeRequest, and the resulting node is added to cache before being returned.
+// If there is an error retrieving the node, an error is returned.
+func (h *headscaleRepository) GetNode(getNode *vo.GetNodeRequest) (*pb.Node, error) {
+	if Node, ok := NodeCache.Get(strconv.FormatUint(getNode.NodeId, 10)); ok {
+		return Node.(*pb.Node), nil
 	}
-	machines, err := task.HeadscaleControl.GetMachine(context.Background(), &getMachine.GetMachineRequest)
+	Nodes, err := task.HeadscaleControl.GetNode(context.Background(), &getNode.GetNodeRequest)
 	if err != nil {
 		return nil, err
 	}
-	if err = machineCache.Add(strconv.FormatUint(machines.Machine.Id, 10), machines.Machine, cache.DefaultExpiration); err != nil {
-		log.Log.Errorf("add machine to cache error:%v", err)
+	if err = NodeCache.Add(strconv.FormatUint(Nodes.Node.Id, 10), Nodes.Node, cache.DefaultExpiration); err != nil {
+		log.Log.Errorf("add Node to cache error:%v", err)
 	}
-	return machines.Machine, err
+	return Nodes.Node, err
 }
 
-// GetMachineWithId retrieves a machine with a given ID, either from cache or by calling the HeadscaleControl API.
-// If the machine is retrieved from cache, it is returned immediately.
-// Otherwise, the HeadscaleControl API is called with a GetMachineRequest containing the machine ID, and the resulting machine is added to cache before being returned.
-// If there is an error retrieving the machine, an error is returned.
-func (h *headscaleRepository) GetMachineWithId(machineId uint64) (*pb.Machine, error) {
-	if machine, ok := machineCache.Get(strconv.FormatUint(machineId, 10)); ok {
-		return machine.(*pb.Machine), nil
+// GetNodeWithId retrieves a node with a given ID, either from cache or by calling the HeadscaleControl API.
+// If the node is retrieved from cache, it is returned immediately.
+// Otherwise, the HeadscaleControl API is called with a GetNodeRequest containing the node ID, and the resulting Node is added to cache before being returned.
+// If there is an error retrieving the node, an error is returned.
+func (h *headscaleRepository) GetNodeWithId(NodeId uint64) (*pb.Node, error) {
+	if Node, ok := NodeCache.Get(strconv.FormatUint(NodeId, 10)); ok {
+		return Node.(*pb.Node), nil
 	}
-	machine, err := task.HeadscaleControl.GetMachine(context.Background(), &pb.GetMachineRequest{MachineId: machineId})
+	Node, err := task.HeadscaleControl.GetNode(context.Background(), &pb.GetNodeRequest{NodeId: NodeId})
 	if err != nil {
 		return nil, err
 	}
-	if err = machineCache.Add(strconv.FormatUint(machine.Machine.Id, 10), machine.Machine, cache.DefaultExpiration); err != nil {
-		log.Log.Errorf("add machine to cache error:%v", err)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		log.Log.Errorf("add Node to cache error:%v", err)
 	}
-	return machine.Machine, err
+	return Node.Node, err
 }
 
-// ExpireMachine sets a machine's expiration date to the current time, effectively expiring the machine.
-// The HeadscaleControl API is called with the ExpireMachineRequest, and the resulting machine is returned.
-// If there is an error expiring the machine, an error is returned.
-func (h *headscaleRepository) ExpireMachine(expireMachine *vo.ExpireMachineRequest) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.ExpireMachine(context.Background(), &expireMachine.ExpireMachineRequest)
+// ExpireNode sets a node's expiration date to the current time, effectively expiring the node.
+// The HeadscaleControl API is called with the ExpireNodeRequest, and the resulting node is returned.
+// If there is an error expiring the node, an error is returned.
+func (h *headscaleRepository) ExpireNode(expireNode *vo.ExpireNodeRequest) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.ExpireNode(context.Background(), &expireNode.ExpireNodeRequest)
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, err
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, err
 }
 
-// ExpireMachineWithId sets a machine's expiration date to the current time, effectively expiring the machine.
-// The HeadscaleControl API is called with an ExpireMachineRequest containing the machine ID, and the resulting machine is returned.
-// If there is an error expiring the machine, an error is returned.
-func (h *headscaleRepository) ExpireMachineWithId(machineId uint64) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.ExpireMachine(context.Background(), &pb.ExpireMachineRequest{MachineId: machineId})
+// ExpireNodeWithId sets a node's expiration date to the current time, effectively expiring the node.
+// The HeadscaleControl API is called with an ExpireNodeRequest containing the node ID, and the resulting node is returned.
+// If there is an error expiring the node, an error is returned.
+func (h *headscaleRepository) ExpireNodeWithId(NodeId uint64) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.ExpireNode(context.Background(), &pb.ExpireNodeRequest{NodeId: NodeId})
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, err
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, err
 }
 
-// RenameMachine renames a machine with a given ID to a new name.
-// The HeadscaleControl API is called with a RenameMachineRequest containing the machine ID and new name, and the resulting machine is returned.
-// If there is an error renaming the machine, an error is returned.
-func (h *headscaleRepository) RenameMachine(machineId uint64, name string) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.RenameMachine(context.Background(), &pb.RenameMachineRequest{
-		MachineId: machineId,
-		NewName:   name,
+// RenameNode renames a node with a given ID to a new name.
+// The HeadscaleControl API is called with a RenameNodeRequest containing the node ID and new name, and the resulting Node is returned.
+// If there is an error renaming the node, an error is returned.
+func (h *headscaleRepository) RenameNode(NodeId uint64, name string) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.RenameNode(context.Background(), &pb.RenameNodeRequest{
+		NodeId:  NodeId,
+		NewName: name,
 	})
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, nil
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, nil
 }
 
-// RenameMachineWithNewName renames a machine with a given ID to a new name.
-// The HeadscaleControl API is called with a RenameMachineRequest containing the machine ID and new name, and the resulting machine is returned.
-// If there is an error renaming the machine, an error is returned.
-func (h *headscaleRepository) RenameMachineWithNewName(machineId uint64, name string) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.RenameMachine(context.Background(), &pb.RenameMachineRequest{
-		MachineId: machineId,
-		NewName:   name,
+// RenameNodeWithNewName renames a node with a given ID to a new name.
+// The HeadscaleControl API is called with a RenameNodeRequest containing the node ID and new name, and the resulting Node is returned.
+// If there is an error renaming the node, an error is returned.
+func (h *headscaleRepository) RenameNodeWithNewName(NodeId uint64, name string) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.RenameNode(context.Background(), &pb.RenameNodeRequest{
+		NodeId:  NodeId,
+		NewName: name,
 	})
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, nil
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, nil
 }
 
-// MoveMachine moves a machine to a new user.
-// The HeadscaleControl API is called with the MoveMachineRequest, and the resulting machine is returned.
-// If there is an error moving the machine, an error is returned.
-func (h *headscaleRepository) MoveMachine(machine *vo.MoveMachineRequest) (*pb.Machine, error) {
-	movedMachine, err := task.HeadscaleControl.MoveMachine(context.Background(), &machine.MoveMachineRequest)
+// MoveNode moves a node to a new user.
+// The HeadscaleControl API is called with the MoveNodeRequest, and the resulting node is returned.
+// If there is an error moving the node, an error is returned.
+func (h *headscaleRepository) MoveNode(Node *vo.MoveNodeRequest) (*pb.Node, error) {
+	movedNode, err := task.HeadscaleControl.MoveNode(context.Background(), &Node.MoveNodeRequest)
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Flush()
-	//machineCache.Delete("")
+	NodeCache.Flush()
+	//NodeCache.Delete("")
 	// cannot delete old user's cache
-	//machineCache.Delete(machine.User)
-	//machineCache.Delete(movedMachine.Machine.User.Name)
-	return movedMachine.Machine, nil
+	//NodeCache.Delete(Node.User)
+	//NodeCache.Delete(movedNode.Node.User.Name)
+	return movedNode.Node, nil
 }
 
-// MoveMachineWithUser moves a machine to a new user.
-// The HeadscaleControl API is called with a MoveMachineRequest containing the machine ID and new user, and the resulting machine is returned.
-// If there is an error moving the machine, an error is returned.
-func (h *headscaleRepository) MoveMachineWithUser(machineId uint64, user string) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.MoveMachine(context.Background(), &pb.MoveMachineRequest{
-		MachineId: machineId,
-		User:      user,
+// MoveNodeWithUser moves a node to a new user.
+// The HeadscaleControl API is called with a MoveNodeRequest containing the node ID and new user, and the resulting Node is returned.
+// If there is an error moving the node, an error is returned.
+func (h *headscaleRepository) MoveNodeWithUser(NodeId uint64, user string) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.MoveNode(context.Background(), &pb.MoveNodeRequest{
+		NodeId: NodeId,
+		User:   user,
 	})
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Flush()
-	//machineCache.Delete("")
+	NodeCache.Flush()
+	//NodeCache.Delete("")
 	// cannot delete old user's cache
-	//machineCache.Delete(user)
-	//machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, nil
+	//NodeCache.Delete(user)
+	//NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, nil
 }
 
-// DeleteMachine deletes a machine with a given ID.
-// The HeadscaleControl API is called with the DeleteMachineRequest, and any cached machines are deleted.
-// If there is an error deleting the machine, an error is returned.
-func (h *headscaleRepository) DeleteMachine(machine *vo.DeleteMachineRequest) (err error) {
-	_, err = task.HeadscaleControl.DeleteMachine(context.Background(), &machine.DeleteMachineRequest)
-	machineCache.Delete("")
+// DeleteNode deletes a Node with a given ID.
+// The HeadscaleControl API is called with the DeleteNodeRequest, and any cached Nodes are deleted.
+// If there is an error deleting the Node, an error is returned.
+func (h *headscaleRepository) DeleteNode(Node *vo.DeleteNodeRequest) (err error) {
+	_, err = task.HeadscaleControl.DeleteNode(context.Background(), &Node.DeleteNodeRequest)
+	NodeCache.Delete("")
 	// cannot delete user's cache by ID
-	//machineCache.Delete(machine.Machine.User.Name)
+	//NodeCache.Delete(Node.Node.User.Name)
 	return
 }
 
-// DeleteMachineWithId deletes a machine with a given ID.
-// The HeadscaleControl API is called with a DeleteMachineRequest containing the machine ID, and any cached machines are deleted.
-// If there is an error deleting the machine, an error is returned.
-func (h *headscaleRepository) DeleteMachineWithId(machineId uint64) (err error) {
-	_, err = task.HeadscaleControl.DeleteMachine(context.Background(), &pb.DeleteMachineRequest{MachineId: machineId})
-	machineCache.Delete("")
-	// cannot delete user's cache by machineId
-	//machineCache.Delete(machine.Machine.User.Name)
+// DeleteNodeWithId deletes a node with a given ID.
+// The HeadscaleControl API is called with a DeleteNodeRequest containing the node ID, and any cached nodes are deleted.
+// If there is an error deleting the node, an error is returned.
+func (h *headscaleRepository) DeleteNodeWithId(NodeId uint64) (err error) {
+	_, err = task.HeadscaleControl.DeleteNode(context.Background(), &pb.DeleteNodeRequest{NodeId: NodeId})
+	NodeCache.Delete("")
+	// cannot delete user's cache by nodeId
+	//NodeCache.Delete(Node.Node.User.Name)
 	return
 }
 
-// RegisterMachine registers a new machine with the given details.
-// The HeadscaleControl API is called with the RegisterMachineRequest, and any cached machines are deleted.
-// If there is an error registering the machine, an error is returned.
-func (h *headscaleRepository) RegisterMachine(newMachine *vo.RegisterMachine) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.RegisterMachine(context.Background(), &newMachine.RegisterMachineRequest)
+// RegisterNode registers a new node with the given details.
+// The HeadscaleControl API is called with the RegisterNodeRequest, and any cached nodes are deleted.
+// If there is an error registering the node, an error is returned.
+func (h *headscaleRepository) RegisterNode(newNode *vo.RegisterNode) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.RegisterNode(context.Background(), &newNode.RegisterNodeRequest)
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, nil
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, nil
 }
 
-// RegisterMachineWithKey registers a new machine with the given user and key.
-// The HeadscaleControl API is called with a RegisterMachineRequest containing the user and key, and any cached machines are deleted.
-// If there is an error registering the machine, an error is returned.
-func (h *headscaleRepository) RegisterMachineWithKey(user, key string) (*pb.Machine, error) {
-	machine, err := task.HeadscaleControl.RegisterMachine(context.Background(), &pb.RegisterMachineRequest{
+// RegisterNodeWithKey registers a new node with the given user and key.
+// The HeadscaleControl API is called with a RegisterNodeRequest containing the user and key, and any cached Nodes are deleted.
+// If there is an error registering the node, an error is returned.
+func (h *headscaleRepository) RegisterNodeWithKey(user, key string) (*pb.Node, error) {
+	Node, err := task.HeadscaleControl.RegisterNode(context.Background(), &pb.RegisterNodeRequest{
 		User: user,
 		Key:  key,
 	})
 	if err != nil {
 		return nil, err
 	}
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, nil
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, nil
 }
 
-// SetTags updates the tags of a machine with the given SetTagsRequest.
-// It returns the updated machine and an error if any.
-func (h *headscaleRepository) SetTags(tags *vo.SetTagsRequest) (*pb.Machine, error) {
+// SetTags updates the tags of a node with the given SetTagsRequest.
+// It returns the updated node and an error if any.
+func (h *headscaleRepository) SetTags(tags *vo.SetTagsRequest) (*pb.Node, error) {
 	// Call the HeadscaleControl's SetTags method with the given context and request.
-	machine, err := task.HeadscaleControl.SetTags(context.Background(), &tags.SetTagsRequest)
+	Node, err := task.HeadscaleControl.SetTags(context.Background(), &tags.SetTagsRequest)
 	if err != nil {
 		return nil, err
 	}
-	// Delete the cached machine information for all machines and the specific user.
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, err
+	// Delete the cached node information for all nodes and the specific user.
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, err
 }
 
-// SetTagsWithStringSlice updates the tags of a machine with the given machineId and tags
-// as a slice of strings. It returns the updated machine and an error if any.
-func (h *headscaleRepository) SetTagsWithStringSlice(machineId uint64, tags []string) (*pb.Machine, error) {
+// SetTagsWithStringSlice updates the tags of a node with the given nodeId and tags
+// as a slice of strings. It returns the updated node and an error if any.
+func (h *headscaleRepository) SetTagsWithStringSlice(NodeId uint64, tags []string) (*pb.Node, error) {
 	// Call the HeadscaleControl's SetTags method with the given context and request.
-	machine, err := task.HeadscaleControl.SetTags(context.Background(), &pb.SetTagsRequest{
-		MachineId: machineId,
-		Tags:      tags,
+	Node, err := task.HeadscaleControl.SetTags(context.Background(), &pb.SetTagsRequest{
+		NodeId: NodeId,
+		Tags:   tags,
 	})
 	if err != nil {
 		return nil, err
 	}
-	// Delete the cached machine information for all machines and the specific user.
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, err
+	// Delete the cached node information for all nodes and the specific user.
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, err
 }
 
-// SetTagsWithStrings updates the tags of a machine with the given machineId and tags
-// as variadic strings. It returns the updated machine and an error if any.
-func (h *headscaleRepository) SetTagsWithStrings(machineId uint64, tags ...string) (*pb.Machine, error) {
+// SetTagsWithStrings updates the tags of a node with the given nodeId and tags
+// as variadic strings. It returns the updated node and an error if any.
+func (h *headscaleRepository) SetTagsWithStrings(NodeId uint64, tags ...string) (*pb.Node, error) {
 	// Call the HeadscaleControl's SetTags method with the given context and request.
-	machine, err := task.HeadscaleControl.SetTags(context.Background(), &pb.SetTagsRequest{
-		MachineId: machineId,
-		Tags:      tags,
+	Node, err := task.HeadscaleControl.SetTags(context.Background(), &pb.SetTagsRequest{
+		NodeId: NodeId,
+		Tags:   tags,
 	})
 	if err != nil {
 		return nil, err
 	}
-	// Delete the cached machine information for all machines and the
-	machineCache.Delete("")
-	machineCache.Delete(machine.Machine.User.Name)
-	return machine.Machine, err
+	// Delete the cached node information for all nodes and the
+	NodeCache.Delete("")
+	NodeCache.Delete(Node.Node.User.Name)
+	return Node.Node, err
 }
 
-// Machine end
+// Node end
+
+// GetDevice wait headscale
+//func (h *headscaleRepository) GetDevice(Id uint64) (*pb.GetDeviceResponse, error) {
+//	Device, err := task.HeadscaleControl.GetDevice(context.Background(), &pb.GetDeviceRoutesRequest{Id: strconv.FormatUint(Id, 10)})
+//	if err != nil {
+//		return nil, err
+//	}
+//	DeviceCache.Delete("")
+//	DeviceCache.Delete(Device.Device.User)
+//	return Device.Device, err
+//}
+
+//func (h *headscaleRepository) GetDeviceRoutes(Id uint64) (*pb.GetDeviceRoutesResponse, error) {
+//	Routes, err := task.HeadscaleControl.GetDeviceRoutes(context.Background(), &pb.GetDeviceRoutesRequest{Id: strconv.FormatUint(Id, 10)})
+//	if err != nil {
+//		return nil, err
+//	}
+//	return Routes.Routes, err
+//}
+
+//func (h *headscaleRepository) EnableDeviceRoutes(Id uint64, Routes []string) (*pb.EnableDeviceRoutesResponse, error) {
+//	routes, err := task.HeadscaleControl.EnableDeviceRoutes(context.Background(), &pb.EnableDeviceRoutesRequest{Id: strconv.FormatUint(Id, 10), Routes: Routes})
+//	if err != nil {
+//		return nil, err
+//	}
+//	return routes, err
+//}
+
+//func (h *headscaleRepository) DeleteDevice(Id uint64) error {
+//	_, err := task.HeadscaleControl.DeleteDevice(context.Background(), &pb.DeleteDeviceRequest{Id: strconv.FormatUint(Id, 10)})
+//	return err
+//}
 
 //func (h *headscaleRepository) RebuildCache() error {
 //	data, err := h.ListUser()

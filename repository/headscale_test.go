@@ -3,8 +3,8 @@ package repository
 import (
 	"errors"
 	"fmt"
+	pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	pb "headscale-panel/gen/headscale/v1"
 	"testing"
 	"time"
 )
