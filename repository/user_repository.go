@@ -214,7 +214,7 @@ func (ur UserRepository) CreateUser(user *model.User) error {
 
 // Update user
 func (ur UserRepository) UpdateUser(user *model.User) error {
-	err := common.DB.Model(user).Updates(user).Error
+	err := common.DB.Model(user).Save(user).Error
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,9 @@
 package common
 
 import (
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"headscale-panel/config"
 	"headscale-panel/log"
 	"headscale-panel/model"
@@ -38,7 +40,7 @@ func SetHeadscale(headscale *model.Headscale) {
 func InitHeadscale() {
 	//HeadscaleConfig := &model.HeadscaleConfig{}
 	Headscale := &model.Headscale{}
-	if err := DB.First(&Headscale).Error; err != nil {
+	if err := DB.First(&Headscale).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		panic(fmt.Errorf("init headscale get config from DB error: %v", err))
 	}
 
