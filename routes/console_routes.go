@@ -16,6 +16,6 @@ func InitConsoleRoutes(r *gin.RouterGroup, authMiddleware *jwt.GinJWTMiddleware)
 
 	InitPreAuthKey(consoleGroup)          // Register PreAuthKey API
 	InitRouteRoutes(consoleGroup)         // Register Route API
-	InitMachinesRoutes(consoleGroup)      // Register Machine API
+	InitNodesRoutes(consoleGroup)         // Register Machine API
 	InitAccessControlRoutes(consoleGroup) // Register ACL API
 }

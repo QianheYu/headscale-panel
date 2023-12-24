@@ -38,7 +38,7 @@ func (r *routeController) GetMachinesRoute(c *gin.Context) {
 	if id == 0 {
 		routes, err = r.repo.GetRoutes()
 	} else {
-		routes, err = r.repo.GetMachineRoutesWithId(id)
+		routes, err = r.repo.GetNodeRoutesWithId(id)
 	}
 	//routes, err := r.repo.GetMachineRoutesWithId(id)
 	if err != nil {
