@@ -2,9 +2,9 @@ package repository
 
 import (
 	"context"
+	pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/patrickmn/go-cache"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	pb "headscale-panel/gen/headscale/v1"
 	"headscale-panel/log"
 	task "headscale-panel/tasks"
 	"headscale-panel/vo"

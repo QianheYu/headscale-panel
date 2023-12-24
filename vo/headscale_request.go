@@ -1,6 +1,6 @@
 package vo
 
-import pb "headscale-panel/gen/headscale/v1"
+import pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 
 // ApiKey start
 type CreateApiKey struct {

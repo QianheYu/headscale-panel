@@ -1,6 +1,6 @@
 package dto
 
-import pb "headscale-panel/gen/headscale/v1"
+import pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 
 type ListPreAuthKey struct {
 	pb.ListPreAuthKeysResponse
