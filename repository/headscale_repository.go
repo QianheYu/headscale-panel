@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/juanfont/headscale/gen/go/headscale/v1"
 	"github.com/patrickmn/go-cache"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -519,6 +520,9 @@ func (h *headscaleRepository) ExpireNode(expireNode *vo.ExpireNodeRequest) (*pb.
 	}
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, err
 }
 
@@ -532,6 +536,9 @@ func (h *headscaleRepository) ExpireNodeWithId(NodeId uint64) (*pb.Node, error) 
 	}
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, err
 }
 
@@ -548,6 +555,9 @@ func (h *headscaleRepository) RenameNode(NodeId uint64, name string) (*pb.Node, 
 	}
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, nil
 }
 
@@ -564,6 +574,9 @@ func (h *headscaleRepository) RenameNodeWithNewName(NodeId uint64, name string) 
 	}
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, nil
 }
 
@@ -571,15 +584,28 @@ func (h *headscaleRepository) RenameNodeWithNewName(NodeId uint64, name string) 
 // The HeadscaleControl API is called with the MoveNodeRequest, and the resulting node is returned.
 // If there is an error moving the node, an error is returned.
 func (h *headscaleRepository) MoveNode(Node *vo.MoveNodeRequest) (*pb.Node, error) {
+	var name string
+	var node interface{}
+	var ok bool
+	if node, ok = NodeCache.Get(strconv.FormatUint(Node.NodeId, 10)); !ok {
+		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			node = searchNode(nodes, Node.NodeId)
+		}
+	}
+
+	if node == nil {
+		return nil, fmt.Errorf("not find node")
+	}
+	name = node.(*pb.Node).User.Name
 	movedNode, err := task.HeadscaleControl.MoveNode(context.Background(), &Node.MoveNodeRequest)
 	if err != nil {
 		return nil, err
 	}
 	NodeCache.Flush()
-	//NodeCache.Delete("")
+	NodeCache.Delete("")
 	// cannot delete old user's cache
-	//NodeCache.Delete(Node.User)
-	//NodeCache.Delete(movedNode.Node.User.Name)
+	NodeCache.Delete(name)
+	NodeCache.Delete(movedNode.Node.User.Name)
 	return movedNode.Node, nil
 }
 
@@ -587,6 +613,20 @@ func (h *headscaleRepository) MoveNode(Node *vo.MoveNodeRequest) (*pb.Node, erro
 // The HeadscaleControl API is called with a MoveNodeRequest containing the node ID and new user, and the resulting Node is returned.
 // If there is an error moving the node, an error is returned.
 func (h *headscaleRepository) MoveNodeWithUser(NodeId uint64, user string) (*pb.Node, error) {
+	var name string
+	var node interface{}
+	var ok bool
+	if node, ok = NodeCache.Get(strconv.FormatUint(NodeId, 10)); !ok {
+		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			node = searchNode(nodes, NodeId)
+		}
+	}
+
+	if node == nil {
+		return nil, fmt.Errorf("not find node")
+	}
+	name = node.(*pb.Node).User.Name
+
 	Node, err := task.HeadscaleControl.MoveNode(context.Background(), &pb.MoveNodeRequest{
 		NodeId: NodeId,
 		User:   user,
@@ -595,10 +635,10 @@ func (h *headscaleRepository) MoveNodeWithUser(NodeId uint64, user string) (*pb.
 		return nil, err
 	}
 	NodeCache.Flush()
-	//NodeCache.Delete("")
+	NodeCache.Delete("")
 	// cannot delete old user's cache
-	//NodeCache.Delete(user)
-	//NodeCache.Delete(Node.Node.User.Name)
+	NodeCache.Delete(name)
+	NodeCache.Delete(Node.Node.User.Name)
 	return Node.Node, nil
 }
 
@@ -606,10 +646,24 @@ func (h *headscaleRepository) MoveNodeWithUser(NodeId uint64, user string) (*pb.
 // The HeadscaleControl API is called with the DeleteNodeRequest, and any cached Nodes are deleted.
 // If there is an error deleting the Node, an error is returned.
 func (h *headscaleRepository) DeleteNode(Node *vo.DeleteNodeRequest) (err error) {
+	var name string
+	var node interface{}
+	var ok bool
+	if node, ok = NodeCache.Get(strconv.FormatUint(Node.NodeId, 10)); !ok {
+		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			node = searchNode(nodes, Node.NodeId)
+		}
+	}
+
+	if node == nil {
+		return fmt.Errorf("not find node")
+	}
+	name = node.(*pb.Node).User.Name
 	_, err = task.HeadscaleControl.DeleteNode(context.Background(), &Node.DeleteNodeRequest)
 	NodeCache.Delete("")
 	// cannot delete user's cache by ID
-	//NodeCache.Delete(Node.Node.User.Name)
+	NodeCache.Delete(name)
+	NodeCache.Delete(strconv.FormatUint(Node.NodeId, 10))
 	return
 }
 
@@ -617,10 +671,24 @@ func (h *headscaleRepository) DeleteNode(Node *vo.DeleteNodeRequest) (err error)
 // The HeadscaleControl API is called with a DeleteNodeRequest containing the node ID, and any cached nodes are deleted.
 // If there is an error deleting the node, an error is returned.
 func (h *headscaleRepository) DeleteNodeWithId(NodeId uint64) (err error) {
+	var name string
+	var node interface{}
+	var ok bool
+	if node, ok = NodeCache.Get(strconv.FormatUint(NodeId, 10)); !ok {
+		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			node = searchNode(nodes, NodeId)
+		}
+	}
+
+	if node == nil {
+		return fmt.Errorf("not find node")
+	}
+	name = node.(*pb.Node).User.Name
 	_, err = task.HeadscaleControl.DeleteNode(context.Background(), &pb.DeleteNodeRequest{NodeId: NodeId})
 	NodeCache.Delete("")
 	// cannot delete user's cache by nodeId
-	//NodeCache.Delete(Node.Node.User.Name)
+	NodeCache.Delete(name)
+	NodeCache.Delete(strconv.FormatUint(NodeId, 10))
 	return
 }
 
@@ -634,6 +702,7 @@ func (h *headscaleRepository) RegisterNode(newNode *vo.RegisterNode) (*pb.Node, 
 	}
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration)
 	return Node.Node, nil
 }
 
@@ -664,6 +733,9 @@ func (h *headscaleRepository) SetTags(tags *vo.SetTagsRequest) (*pb.Node, error)
 	// Delete the cached node information for all nodes and the specific user.
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, err
 }
 
@@ -681,6 +753,9 @@ func (h *headscaleRepository) SetTagsWithStringSlice(NodeId uint64, tags []strin
 	// Delete the cached node information for all nodes and the specific user.
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, err
 }
 
@@ -698,6 +773,9 @@ func (h *headscaleRepository) SetTagsWithStrings(NodeId uint64, tags ...string) 
 	// Delete the cached node information for all nodes and the
 	NodeCache.Delete("")
 	NodeCache.Delete(Node.Node.User.Name)
+	if err = NodeCache.Add(strconv.FormatUint(Node.Node.Id, 10), Node.Node, cache.DefaultExpiration); err != nil {
+		NodeCache.Delete(strconv.FormatUint(Node.Node.Id, 10))
+	}
 	return Node.Node, err
 }
 
@@ -856,6 +934,23 @@ func searchUser(users []*pb.User, id string) *pb.User {
 		if users[mid].Id == id {
 			return users[mid]
 		} else if users[mid].Id > id {
+			max = mid - 1
+		} else {
+			min = mid + 1
+		}
+	}
+	return nil
+}
+
+func searchNode(nodes []*pb.Node, id uint64) *pb.Node {
+	min := 0
+	max := len(nodes)
+
+	for min <= max {
+		mid := min + (max-min)>>2
+		if nodes[mid].Id == id {
+			return nodes[mid]
+		} else if nodes[mid].Id > id {
 			max = mid - 1
 		} else {
 			min = mid + 1
