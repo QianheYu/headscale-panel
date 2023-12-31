@@ -13,4 +13,5 @@ type User struct {
 	Status       uint    `gorm:"type:smallint;default:1;comment:1 normal, 2 disabled" json:"status"`
 	Creator      string  `gorm:"type:varchar(20);" json:"creator"`
 	Roles        []*Role `gorm:"many2many:user_roles" json:"roles"`
+	RefreshFlag  bool    `gorm:"-" json:"-"`
 }

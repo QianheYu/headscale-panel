@@ -40,6 +40,40 @@ type UserRepository struct{}
 // Cache current user information to avoid frequent database access
 var userInfoCache = cache.New(24*time.Hour, 48*time.Hour)
 
+func SetRefreshToken() {
+	for key, item := range userInfoCache.Items() {
+		user := item.Object.(model.User)
+		user.RefreshFlag = false
+		userInfoCache.Set(key, user, cache.DefaultExpiration)
+	}
+}
+
+func SetUsersRefreshFlag(users []*model.User) {
+	for _, user := range users {
+		SetUserRefreshFlag(user)
+	}
+}
+
+func SetUserRefreshFlag(user *model.User) {
+	user.RefreshFlag = true
+	userInfoCache.Set(user.Name, *user, cache.DefaultExpiration)
+}
+
+func ClearUserRefreshToken(username string) {
+	if v, ok := userInfoCache.Get(username); ok {
+		user := v.(model.User)
+		user.RefreshFlag = false
+		userInfoCache.Set(username, user, cache.DefaultExpiration)
+	}
+}
+
+func GetUserRefreshToken(username string) bool {
+	if v, ok := userInfoCache.Get(username); ok && v.(model.User).RefreshFlag {
+		return true
+	}
+	return false
+}
+
 func NewUserRepository() IUserRepository {
 	return UserRepository{}
 }
@@ -82,6 +116,7 @@ func (ur UserRepository) Login(user *model.User) (*model.User, error) {
 	if err != nil {
 		return &firstUser, errors.New("wrong password")
 	}
+	//userInfoCache.Set(firstUser.Name, firstUser, cache.DefaultExpiration)
 	return &firstUser, nil
 }
 
@@ -224,7 +259,7 @@ func (ur UserRepository) UpdateUser(user *model.User) error {
 
 	// Update the user information cache if the update is successful
 	if err == nil {
-		userInfoCache.Set(user.Name, *user, cache.DefaultExpiration)
+		SetUserRefreshFlag(user)
 	}
 	return err
 }

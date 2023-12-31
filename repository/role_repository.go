@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"headscale-panel/common"
+	"headscale-panel/log"
 	"headscale-panel/model"
 	"headscale-panel/vo"
 	"strings"
@@ -87,10 +88,26 @@ func (r RoleRepository) GetRoleMenusById(roleId uint) ([]*model.Menu, error) {
 	return role.Menus, err
 }
 
+func (r RoleRepository) GetRoleUsersById(roleId uint) ([]*model.User, error) {
+	var role model.Role
+	err := common.DB.Where("id = ?", roleId).Preload("Users").First(&role).Error
+	return role.Users, err
+}
+
 // Update role's permission menu
 func (r RoleRepository) UpdateRoleMenus(role *model.Role) error {
 	err := common.DB.Model(role).Association("Menus").Replace(role.Menus)
-	return err
+	if err != nil {
+		return err
+	}
+	go func() {
+		if users, err := r.GetRoleUsersById(role.ID); err == nil {
+			SetUsersRefreshFlag(users)
+		} else {
+			log.Log.Errorf("set role users error: %v", err)
+		}
+	}()
+	return nil
 }
 
 // Get role's permission API by role keyword

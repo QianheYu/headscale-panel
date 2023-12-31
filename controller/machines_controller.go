@@ -21,22 +21,27 @@ type INodesController interface {
 
 type NodesController struct {
 	userRepo  repository.IUserRepository
-	NodesRepo repository.HeadscaleNodesRepository
+	nodesRepo repository.HeadscaleNodesRepository
 }
 
 func NewNodesController() INodesController {
-	return &NodesController{userRepo: repository.NewUserRepository(), NodesRepo: repository.NewNodesRepo()}
+	return &NodesController{userRepo: repository.NewUserRepository(), nodesRepo: repository.NewNodesRepo()}
 }
 
-// GetNodes
+// GetNodes get nodes by user name
 func (m *NodesController) GetNodes(c *gin.Context) {
-	//user, err := m.userRepo.GetCurrentUser(c)
-	//if err != nil {
-	//	response.Fail(c, nil, "Failed to get Node")
-	//	log.Log.Errorf("get current user error: %v", err)
-	//	return
-	//}
-	Nodes, err := m.NodesRepo.ListNodesWithUser("")
+	user, err := m.userRepo.GetCurrentUser(c)
+	if err != nil {
+		response.Fail(c, nil, "Failed to get Node")
+		log.Log.Errorf("get current user error: %v", err)
+		return
+	}
+
+	if mflag, ok := c.Get("machineFlag"); ok && mflag.(bool) {
+		user.Name = ""
+	}
+
+	Nodes, err := m.nodesRepo.ListNodesWithUser(user.Name)
 	if err != nil && err.Error() != "rpc error: code = Unknown desc = User not found" {
 		response.Fail(c, nil, "Failed to get Nodes")
 		log.Log.Errorf("get Node error: %v", err)
@@ -66,10 +71,10 @@ func (m *NodesController) StateNodes(c *gin.Context) {
 	switch req.State {
 	case "rename":
 		// rename node
-		data, err = m.NodesRepo.RenameNodeWithNewName(req.NodeId, req.Name)
+		data, err = m.nodesRepo.RenameNodeWithNewName(req.NodeId, req.Name)
 	case "expire":
 		// expire node
-		data, err = m.NodesRepo.ExpireNodeWithId(req.NodeId)
+		data, err = m.nodesRepo.ExpireNodeWithId(req.NodeId)
 	case "register":
 		// register node
 		var user model.User
@@ -77,7 +82,7 @@ func (m *NodesController) StateNodes(c *gin.Context) {
 		if err != nil {
 			break
 		}
-		data, err = m.NodesRepo.RegisterNodeWithKey(user.Name, req.Nodekey)
+		data, err = m.nodesRepo.RegisterNodeWithKey(user.Name, req.Nodekey)
 	default:
 		response.Fail(c, nil, "params error")
 		return
@@ -107,7 +112,7 @@ func (m *NodesController) MoveNode(c *gin.Context) {
 		return
 	}
 
-	Node, err := m.NodesRepo.MoveNode(req)
+	Node, err := m.nodesRepo.MoveNode(req)
 	if err != nil {
 		response.Fail(c, nil, "Failed to move Node")
 		log.Log.Errorf("move Node error: %v", err)
@@ -133,7 +138,7 @@ func (m *NodesController) DeleteNode(c *gin.Context) {
 		return
 	}
 
-	if err := m.NodesRepo.DeleteNode(req); err != nil {
+	if err := m.nodesRepo.DeleteNode(req); err != nil {
 		response.Fail(c, nil, "Failed to delete node")
 		log.Log.Errorf("delete node error: %v", err)
 		return
@@ -158,7 +163,7 @@ func (m *NodesController) SetTags(c *gin.Context) {
 		return
 	}
 
-	data, err := m.NodesRepo.SetTagsWithStringSlice(req.NodeId, req.Tags)
+	data, err := m.nodesRepo.SetTagsWithStringSlice(req.NodeId, req.Tags)
 	if err != nil {
 		response.Fail(c, nil, "Failed to set tag")
 		log.Log.Errorf("set tag error: %v", err)

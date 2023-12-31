@@ -45,6 +45,7 @@ func payloadFunc(data interface{}) jwt.MapClaims {
 		return jwt.MapClaims{
 			jwt.IdentityKey: user.ID,
 			"user":          v["user"],
+			"machineFlag":   v["machineFlag"],
 		}
 	}
 	return jwt.MapClaims{}
@@ -58,6 +59,7 @@ func identityHandler(c *gin.Context) interface{} {
 	return map[string]interface{}{
 		"IdentityKey": claims[jwt.IdentityKey],
 		"user":        claims["user"],
+		"machineFlag": claims["machineFlag"],
 	}
 }
 
@@ -86,22 +88,50 @@ func login(c *gin.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	menus, err := repository.NewMenuRepository().GetUserMenusByUserId(user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	repository.ClearUserRefreshToken(user.Name)
+
+	var mflag bool
+	for _, menu := range menus {
+		if menu.Name == "MachinesManage" {
+			mflag = true
+		}
+	}
+
 	// Writing the user in json format, payloadFunc/authorizator will use the
 	return map[string]interface{}{
-		"user": util.Struct2Json(user),
+		"user":        util.Struct2Json(user),
+		"machineFlag": mflag,
 	}, nil
 }
 
 // Processing of successful user login verification
 func authorizator(data interface{}, c *gin.Context) bool {
-	if v, ok := data.(map[string]interface{}); ok {
-		userStr := v["user"].(string)
+	if kv, ok := data.(map[string]interface{}); ok {
 		var user model.User
-		// Converting user json to structs
-		util.Json2Struct(userStr, &user)
-		// Save user to context, easy to fetch data when called by api
-		c.Set("user", user)
-		return true
+		for key, value := range kv {
+			switch key {
+			case "user":
+				// Converting user json to structs
+				util.Json2Struct(value.(string), &user)
+				// Save user to context, easy to fetch data when called by api
+				c.Set("user", user)
+			case "machineFlag":
+				if value != nil {
+					c.Set("machineFlag", value.(bool))
+				}
+			default:
+				c.Set(key, value)
+			}
+		}
+		if len(user.Name) > 0 && !repository.GetUserRefreshToken(user.Name) {
+			return true
+		}
 	}
 	return false
 }
