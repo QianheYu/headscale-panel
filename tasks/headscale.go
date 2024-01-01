@@ -15,7 +15,7 @@ import (
 
 const baseURL = "https://api.github.com/repos/juanfont/headscale/releases"
 
-var p *util.Process
+var p *Process
 var latestVersion = Release{}
 var checkTimes int
 
@@ -32,11 +32,11 @@ func (h *HeadscaleService) Start() error {
 		// check the inside or outside to init process
 		if config.Conf.Headscale.Controller.Inside {
 			log.Log.Debug("start inside control process")
-			p = util.NewProcess(util.InsideControl(config.Conf.Headscale.App, config.Conf.Headscale.Config))
+			p = NewProcess(InsideControl(config.Conf.Headscale.App, config.Conf.Headscale.Config))
 		} else {
 			log.Log.Debug("start outside control process")
-			p = util.NewProcess(
-				util.OutsideControl(
+			p = NewProcess(
+				OutsideControl(
 					config.Conf.Headscale.App,
 					config.Conf.Headscale.Config,
 					config.Conf.Headscale.Controller.Command.Start,
