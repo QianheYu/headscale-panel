@@ -589,6 +589,8 @@ func (h *headscaleRepository) MoveNode(Node *vo.MoveNodeRequest) (*pb.Node, erro
 	var ok bool
 	if node, ok = NodeCache.Get(strconv.FormatUint(Node.NodeId, 10)); !ok {
 		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			log.Log.Error(err)
+		} else {
 			node = searchNode(nodes, Node.NodeId)
 		}
 	}
@@ -618,6 +620,8 @@ func (h *headscaleRepository) MoveNodeWithUser(NodeId uint64, user string) (*pb.
 	var ok bool
 	if node, ok = NodeCache.Get(strconv.FormatUint(NodeId, 10)); !ok {
 		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			log.Log.Error(err)
+		} else {
 			node = searchNode(nodes, NodeId)
 		}
 	}
@@ -651,6 +655,8 @@ func (h *headscaleRepository) DeleteNode(Node *vo.DeleteNodeRequest) (err error)
 	var ok bool
 	if node, ok = NodeCache.Get(strconv.FormatUint(Node.NodeId, 10)); !ok {
 		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			log.Log.Error(err)
+		} else {
 			node = searchNode(nodes, Node.NodeId)
 		}
 	}
@@ -676,6 +682,8 @@ func (h *headscaleRepository) DeleteNodeWithId(NodeId uint64) (err error) {
 	var ok bool
 	if node, ok = NodeCache.Get(strconv.FormatUint(NodeId, 10)); !ok {
 		if nodes, err := h.ListNodesWithUser(""); err != nil {
+			log.Log.Error(err)
+		} else {
 			node = searchNode(nodes, NodeId)
 		}
 	}

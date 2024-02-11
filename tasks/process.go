@@ -126,11 +126,14 @@ func (p *Process) GetApiKey() string {
 func (p *Process) Start() error {
 	p.refreshVersion() // get headscale version
 	p.err = p.p.Start(context.Background())
+
+	log.Log.Debugf("start headscale error: %v", p.err)
 	return p.err
 }
 
 // Stop the process
 func (p *Process) Stop(ctx context.Context) error {
 	p.err = p.p.Stop(ctx)
+	log.Log.Debugf("stop headscale error: %v", p.err)
 	return p.err
 }

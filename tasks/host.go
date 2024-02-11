@@ -118,6 +118,7 @@ func refreshHostStatus(lastStatus *dto.SystemStatusDto) *dto.SystemStatusDto {
 			status.Headscale.Error = ""
 		} else {
 			err := h.GetErr()
+			log.Log.Errorf("status error: %v", err)
 			if err != nil {
 				status.Headscale.Status = Error
 				status.Headscale.Error = err.Error()

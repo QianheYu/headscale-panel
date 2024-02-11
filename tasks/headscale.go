@@ -159,11 +159,13 @@ func (h *HeadscaleService) checkProcess() {
 	checkTimes++
 	if checkTimes > 2 {
 		checkTimes = 0
-		log.Log.Warn("headscale process is not running, restart it")
+		log.Log.Warn("headscale process is not running")
 		// Restart the process
 		if err := p.Stop(context.Background()); err != nil {
 			log.Log.Errorf("deamon stop headscale process error: %v", err)
+			return
 		}
+		log.Log.Info("restart headscale")
 		if err := p.Start(); err != nil {
 			log.Log.Errorf("deamon start headscale process error: %v", err)
 		}

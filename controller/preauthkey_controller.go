@@ -1,9 +1,11 @@
 package controller
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"gorm.io/gorm"
 	"headscale-panel/common"
 	"headscale-panel/log"
 	"headscale-panel/repository"
@@ -40,11 +42,16 @@ func (p *preAuthKeyController) ListPreAuthKey(c *gin.Context) {
 	}
 
 	rsp, err := p.repo.ListPreAuthKeyWithString(user.Name)
-	if err != nil && err.Error() != "rpc error: code = Unknown desc = User not found" {
-		response.Fail(c, nil, "Not found user")
-		log.Log.Errorf("not found user: %v", err)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		response.Fail(c, nil, "unknown error")
+		log.Log.Errorf("list preauth key error: %v", err)
 		return
 	}
+	//if err != nil && err.Error() != "rpc error: code = Unknown desc = User not found" {
+	//	response.Fail(c, nil, "Not found user")
+	//	log.Log.Errorf("not found user: %v", err)
+	//	return
+	//}
 	response.Success(c, rsp, "Success")
 }
 

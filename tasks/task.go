@@ -88,6 +88,7 @@ func (t *task) Start() error {
 		return err
 	}
 	h.checkNewVersion()
+	h.checkProcess()
 	return nil
 }
 
